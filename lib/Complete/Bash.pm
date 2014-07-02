@@ -199,7 +199,10 @@ sub parse_cmdline {
     my ($line, $point) = @_;
 
     $line  //= $ENV{COMP_LINE};
-    $point //= $ENV{COMP_POINT};
+    $point //= $ENV{COMP_POINT} // 0;
+
+    die "$0: COMP_LINE not set, make sure this script is run under ".
+        "bash completion (e.g. through complete -C)\n" unless defined $line;
 
     my $left  = substr($line, 0, $point);
     my $right = substr($line, $point);
