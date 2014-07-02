@@ -2,4 +2,7 @@ Revision history for Complete-Bash
 
 0.01    2014-07-02 (SHARYANTO)
 
-        - First release, extracted from Complete-Util.
+        - First release, extracted from Complete-Util. format_completion() is
+          from Complete::Util's format_shell_completion() but can also accept
+          array instead of hash. parse_cmdline() is from Complete::Util's
+          parse_shell_cmdline() but with a different return value.
