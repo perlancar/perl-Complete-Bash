@@ -173,7 +173,7 @@ sub break_cmdline_into_words {
         }
 
         if (index($word_breaks, $char) >= 0) {
-            if ($double_quoted || $single_quoted || $escaped) {
+            if ($escaped || $single_quoted || $double_quoted) {
                 $buf .= $char;
                 next;
             }
