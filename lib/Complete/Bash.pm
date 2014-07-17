@@ -22,8 +22,8 @@ $SPEC{mimic_dir_completion} = {
     summary => 'Make completion of paths behave more like shell',
     description => <<'_',
 
-Note for users: normally you just need to use `format_shell_completion()` and
-need not know about this function.
+Note for users: normally you just need to use `format_completion()` and need not
+know about this function.
 
 This function employs a trick to make directory/path completion work more like
 shell's own. In shell, when completing directory, the sole completion for `foo/`
