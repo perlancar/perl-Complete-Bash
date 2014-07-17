@@ -93,6 +93,20 @@ _
             req => 1,
             pos => 0,
         },
+        word_breaks => {
+            summary => 'Extra characters to break word at',
+            description => <<'_',
+
+In addition to space and tab.
+
+Example: `=:`.
+
+Note that the characters won't break words if inside quotes or escaped.
+
+_
+            schema  => 'str*',
+            pos => 1,
+        },
     },
     result_naked => 1,
     result => {
@@ -100,7 +114,9 @@ _
     },
 };
 sub break_cmdline_into_words {
-    my $cmdline = shift;
+    my ($cmdline, $word_breaks) = @_;
+
+    $word_breaks //= '';
 
     # BEGIN stolen from Parse::CommandLine, with some mods
     $cmdline =~ s/\A\s+//ms;
@@ -153,6 +169,16 @@ sub break_cmdline_into_words {
                 next;
             }
             $single_quoted = !$single_quoted;
+            next;
+        }
+
+        if (index($word_breaks, $char) >= 0) {
+            if ($double_quoted || $single_quoted || $escaped) {
+                $buf .= $char;
+                next;
+            }
+            push @argv, $buf if defined $buf;
+            undef $buf;
             next;
         }
 
