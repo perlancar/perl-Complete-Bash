@@ -94,16 +94,6 @@ _
             pos => 0,
         },
         word_breaks => {
-            summary => 'Extra characters to break word at',
-            description => <<'_',
-
-In addition to space and tab.
-
-Example: `=:`.
-
-Note that the characters won't break words if inside quotes or escaped.
-
-_
             schema  => 'str*',
             pos => 1,
         },
@@ -218,11 +208,25 @@ _
             schema => 'int*',
             pos => 1,
         },
+        word_breaks => {
+            summary => 'Extra characters to break word at',
+            description => <<'_',
+
+In addition to space and tab.
+
+Example: `=:`.
+
+Note that the characters won't break words if inside quotes or escaped.
+
+_
+            schema => 'str*',
+            pos => 2,
+        },
     },
     result_naked => 1,
 };
 sub parse_cmdline {
-    my ($line, $point) = @_;
+    my ($line, $point, $word_breaks) = @_;
 
     $line  //= $ENV{COMP_LINE};
     $point //= $ENV{COMP_POINT} // 0;
@@ -237,7 +241,7 @@ sub parse_cmdline {
 
     my @left;
     if (length($left)) {
-        @left = @{ break_cmdline_into_words($left) };
+        @left = @{ break_cmdline_into_words($left, $word_breaks) };
         # shave off $0
         substr($left, 0, length($left[0])) = "";
         $left =~ s/^\s+//;
@@ -248,7 +252,7 @@ sub parse_cmdline {
     if (length($right)) {
         # shave off the rest of the word at "cursor"
         $right =~ s/^\S+//;
-        @right = @{ break_cmdline_into_words($right) }
+        @right = @{ break_cmdline_into_words($right, $word_breaks) }
             if length($right);
     }
     #$log->tracef("\@left=%s, \@right=%s", \@left, \@right);
