@@ -192,7 +192,8 @@ Currently only supports bash.
 
 Returns a list: ($words, $cword). $words is array of str, equivalent to
 `COMP_WORDS` provided by shell to bash function. $cword is an integer,
-equivalent to shell-provided `COMP_CWORD` variable to bash function.
+equivalent to shell-provided `COMP_CWORD` variable to bash function. The word to
+be completed is at `$words->[$cword]`.
 
 _
     args_as => 'array',
@@ -224,6 +225,62 @@ _
         },
     },
     result_naked => 1,
+    examples => [
+        {
+            argv    => ['cmd ', 4],
+            result  => [[], 0],
+            summary => 'The command (first word) is never included',
+        },
+        {
+            argv    => ['cmd -', 5],
+            result  => [['-'], 0],
+        },
+        {
+            argv    => ['cmd - ', 6],
+            result  => [['-'], 1],
+        },
+        {
+            argv    => ['cmd --opt val', 6],
+            result  => [['--', 'val'], 0],
+        },
+        {
+            argv    => ['cmd --opt val', 9],
+            result  => [['--opt', 'val'], 0],
+        },
+        {
+            argv    => ['cmd --opt val', 10],
+            result  => [['--opt'], 1],
+        },
+        {
+            argv    => ['cmd --opt val', 13],
+            result  => [['--opt', 'val'], 1],
+        },
+        {
+            argv    => ['cmd --opt val ', 14],
+            result  => [['--opt', 'val'], 2],
+        },
+        {
+            argv    => ['cmd --opt=val', 13],
+            result  => [['--opt=val'], 0],
+            summary => 'Other word-breaking characters (other than whitespace)'.
+                ' is not used by default',
+        },
+        {
+            argv    => ['cmd --opt=val', 13, '='],
+            result  => [['--opt', 'val'], 1],
+            summary => "Breaking at '=' too",
+        },
+        {
+            argv    => ['cmd --opt=val ', 14, '='],
+            result  => [['--opt', 'val'], 2],
+            summary => "Breaking at '=' too (2)",
+        },
+        {
+            argv    => ['cmd "--opt=val', 13],
+            result  => [['--opt=va'], 0],
+            summary => 'Double quote protects word-breaking characters',
+        },
+    ],
 };
 sub parse_cmdline {
     my ($line, $point, $word_breaks) = @_;
