@@ -29,4 +29,6 @@ is_deeply(
     "word_breaks 1",
 );
 
+# more tests in Rinci metadata's examples
+
 done_testing;
