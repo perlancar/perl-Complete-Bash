@@ -269,7 +269,7 @@ sub parse_cmdline {
     if (defined($tmp)) { $nspc_lastw++ while $tmp =~ s/\s$// }
     $cword++ if $nspc_lastw < $nspc_left;
 
-    return ($words, $cword);
+    return [$words, $cword];
 }
 
 $SPEC{format_completion} = {
