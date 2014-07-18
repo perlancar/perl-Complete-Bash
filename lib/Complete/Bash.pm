@@ -190,11 +190,6 @@ $SPEC{parse_cmdline} = {
 
 Currently only supports bash.
 
-Returns a list: ($words, $cword). $words is array of str, equivalent to
-`COMP_WORDS` provided by shell to bash function. $cword is an integer,
-equivalent to shell-provided `COMP_CWORD` variable to bash function. The word to
-be completed is at `$words->[$cword]`.
-
 _
     args_as => 'array',
     args => {
@@ -223,6 +218,17 @@ _
             schema => 'str*',
             pos => 2,
         },
+    },
+    result => {
+        schema => ['array*', len=>2],
+        description => <<'_',
+
+Return a 2-element array: `[$words, $cword]`. `$words` is array of str,
+equivalent to `COMP_WORDS` provided by shell to bash function. `$cword` is an
+integer, equivalent to shell-provided `COMP_CWORD` variable to bash function.
+The word to be completed is at `$words->[$cword]`.
+
+_
     },
     result_naked => 1,
     examples => [
