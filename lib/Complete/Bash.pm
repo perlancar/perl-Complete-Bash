@@ -7,7 +7,6 @@ use warnings;
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
-                       mimic_dir_completion
                        parse_cmdline
                        format_completion
                );
@@ -16,52 +15,6 @@ our @EXPORT_OK = qw(
 # VERSION
 
 our %SPEC;
-
-$SPEC{mimic_dir_completion} = {
-    v => 1.1,
-    summary => 'Make completion of paths behave more like shell',
-    description => <<'_',
-
-Note for users: normally you just need to use `format_completion()` and need not
-know about this function.
-
-This function employs a trick to make directory/path completion work more like
-shell's own. In shell, when completing directory, the sole completion for `foo/`
-is `foo/`, the cursor doesn't automatically add a space (like the way it does
-when there is only a single completion possible). Instead it stays right after
-the `/` to allow user to continue completing further deeper in the tree
-(`foo/bar` and so on).
-
-To make programmable completion work like shell's builtin dir completion, the
-trick is to add another completion alternative `foo/ ` (with an added space) so
-shell won't automatically add a space because there are now more than one
-completion possible (`foo/` and `foo/ `).
-
-_
-    args_as => 'array',
-    args => {
-        completion => {
-            schema=>'array*',
-            req=>1,
-            pos=>0,
-        },
-        sep => {
-            schema => 'str*',
-            default => '/',
-            pos => 1,
-        },
-    },
-    result_naked => 1,
-    result => {
-        schema => 'array',
-    },
-};
-sub mimic_dir_completion {
-    my ($comp, $sep) = @_;
-    $sep = '/' unless defined($sep) && length($sep);
-    return $comp unless @$comp == 1 && $comp->[0] =~ m!\Q$sep\E\z!;
-    [$comp->[0], "$comp->[0] "];
-}
 
 $SPEC{break_cmdline_into_words} = {
     v => 1.1,
@@ -337,21 +290,59 @@ sub parse_cmdline {
 
 $SPEC{format_completion} = {
     v => 1.1,
-    summary => 'Format completion for output to shell',
+    summary => 'Format completion for output (for shell)',
     description => <<'_',
 
-Usually, like in bash, we just need to output the entries one line at a time,
-with some special characters in the entry escaped using backslashes so it's not
-interpreted by the shell.
+Bash accepts completion reply in the form of one entry per line to STDOUT. Some
+characters will need to be escaped. This function helps you do the formatting,
+with some options.
 
-This function accepts a hash, not an array. You can put the result of
-`complete_*` function in the `completion` key of the hash. The other keys can be
-added for hints on how to format the completion reply more
-correctly/appropriately to the shell. Known hints: `type` (string, can be
-`filename`, `env`, or others; this helps the routine picks the appropriate
-escaping), `is_path` (bool, if set to true then `mimic_shell_dir_completion`
-logic is applied), `path_sep` (string, character to separate path, defaults to
-`/`).
+This function accepts an array (the result of a `complete_*` function), _or_ a
+hash (which contains the completion array from a `complete_*` function as well
+as other metadata for formatting hints). Known keys:
+
+* `completion` (array): The completion array. You can put the result of
+  `complete_*` function here.
+
+* `as` (str): Either `string` (the default) or `array` (to return array of lines
+  instead of the lines joined together). Returning array is useful if you are
+  doing completion inside `Term::ReadLine`, for example, where the library
+  expects an array.
+
+* `escmode` (str): Escaping mode for entries. Either `default` (most
+  nonalphanumeric characters will be escaped), `shellvar` (like `default`, but
+  dollar sign `$` will not be escaped, convenient when completing environment
+  variables for example), `filename` (currently equals to `default`), `option`
+  (currently equals to `default`), or `none` (no escaping will be done).
+
+* `path_sep` (str): If set, will enable "path mode", useful for
+  completing/drilling-down path. Below is the description of "path mode".
+
+  In shell, when completing filename (e.g. `foo`) and there is only a single
+  possible completion (e.g. `foo` or `foo.txt`), the shell will display the
+  completion in the buffer and automatically add a space so the user can move to
+  the next argument. This is also true when completing other values like
+  variables or program names.
+
+  However, when completing directory (e.g. `/et` or `Downloads`) and there is
+  solely a single completion possible and it is a directory (e.g. `/etc` or
+  `Downloads`), the shell automatically adds the path separator character
+  instead (`/etc/` or `Downloads/`). The user can press Tab again to complete
+  for files/directories inside that directory, and so on. This is obviously more
+  convenient compared to when shell adds a space instead.
+
+  The `path_sep` option, when set, will employ a trick to mimic this behaviour.
+  The trick is, if you have a completion array of `['foo/']`, it will be changed
+  to `['foo/', 'foo/ ']` (the second element is the first element with added
+  space at the end) to prevent bash from adding a space automatically.
+
+  Path mode is not restricted to completing filesystem paths. Anything path-like
+  can use it. For example when you are completing Java or Perl package name
+  (e.g. `com.company.product.whatever` or `File::Spec::Unix`) you can use this
+  mode (with `path_sep` appropriately set to, e.g. `.` or `::`). But note that
+  in the case of `::` since colon is a word-breaking character in Bash by
+  default, when typing you'll need to escape it (e.g. `mpath File\:\:Sp<tab>`)
+  or use it inside quotes (e.g. `mpath "File::Sp<tab>`).
 
 _
     args_as => 'array',
@@ -360,49 +351,51 @@ _
             summary => 'Result of shell completion',
             description => <<'_',
 
-A hash containing list of completions and other metadata. For example:
-
-    {
-        completion => ['f1', 'f2', 'f3.txt', 'foo:bar.txt'],
-        type => 'filename',
-    }
+Either an array or hash. See function description for more details.
 
 _
-            schema=>'hash*',
+            schema=>['any*' => of => ['hash*', 'array*']],
             req=>1,
             pos=>0,
         },
     },
     result => {
-        schema => 'str*',
+        summary => 'Formatted string (or array, if `as` is set to `array`)',
+        schema => ['any*' => of => ['str*', 'array*']],
     },
     result_naked => 1,
 };
 sub format_completion {
-    my ($shcomp) = @_;
+    my ($hcomp) = @_;
 
-    $shcomp //= {};
-    if (ref($shcomp) ne 'HASH') {
-        $shcomp = {completion=>$shcomp};
+    $hcomp = {completion=>$hcomp} unless ref($hcomp) eq 'HASH';
+    my $comp     = $hcomp->{completion};
+    my $as       = $hcomp->{as} // 'string';
+    my $escmode  = $hcomp->{escmode} // 'default';
+    my $path_sep = $hcomp->{path_sep};
+
+    if (defined($path_sep) && @$comp == 1 && $comp->[0] =~ /\Q$path_sep\E\z/) {
+        $comp = [$comp->[0], "$comp->[0] "];
     }
-    my $comp = $shcomp->{completion} // [];
-    $comp = mimic_dir_completion($comp, $shcomp->{path_sep})
-        if $shcomp->{is_path};
-    my $type = $shcomp->{type} // '';
 
-    my @lines;
-    for (@$comp) {
-        my $str = $_;
-        if ($type eq 'env') {
+    my @lines = @$comp;
+    for (@lines) {
+        if ($escmode eq 'shellvar') {
             # don't escape $
-            $str =~ s!([^A-Za-z0-9,+._/\$-])!\\$1!g;
+            s!([^A-Za-z0-9,+._/\$-])!\\$1!g;
+        } elsif ($escmode eq 'none') {
+            # no escaping
         } else {
-            $str =~ s!([^A-Za-z0-9,+._/:-])!\\$1!g;
+            # default
+            s!([^A-Za-z0-9,+._/:-])!\\$1!g;
         }
-        $str .= "\n";
-        push @lines, $str;
     }
-    join("", @lines);
+
+    if ($as eq 'array') {
+        return \@lines;
+    } else {
+        return join("", map {($_, "\n")} @lines);
+    }
 }
 
 1;
@@ -457,6 +450,11 @@ This module provides routines for you to be doing the above.
 Instead of being called by bash as an external command every time user presses
 Tab, you can also use Perl to I<generate> bash C<complete> scripts for you. See
 L<Complete::BashGen>.
+
+
+=head1 TODOS
+
+Accept regex for path_sep.
 
 
 =head1 SEE ALSO
