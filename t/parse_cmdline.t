@@ -28,6 +28,11 @@ is_deeply(
     [[qw/--baz = 2 qux/], 0],
     "word_breaks 1",
 );
+is_deeply(
+    parse_cmdline("foo bar --baz=", 4, "="),
+    [[qw/--baz =/], 0],
+    "word_breaks 2",
+);
 
 # more tests in Rinci metadata's examples
 
