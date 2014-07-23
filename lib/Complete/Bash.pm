@@ -121,6 +121,7 @@ sub break_cmdline_into_words {
                 next;
             }
             push @argv, $buf if defined $buf;
+            push @argv, $char;
             undef $buf;
             next;
         }
@@ -226,16 +227,16 @@ _
         },
         {
             argv    => ['cmd --opt=val', 13, '='],
-            result  => [['--opt', 'val'], 1],
+            result  => [['--opt', '=', 'val'], 2],
             summary => "Breaking at '=' too",
         },
         {
             argv    => ['cmd --opt=val ', 14, '='],
-            result  => [['--opt', 'val'], 2],
+            result  => [['--opt', '=', 'val'], 3],
             summary => "Breaking at '=' too (2)",
         },
         {
-            argv    => ['cmd "--opt=val', 13],
+            argv    => ['cmd "--opt=val', 13, '='],
             result  => [['--opt=va'], 0],
             summary => 'Double quote protects word-breaking characters',
         },
