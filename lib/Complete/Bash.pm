@@ -72,6 +72,11 @@ equivalent to `COMP_WORDS` provided by bash to shell functions. `$cword` is an
 integer, equivalent to `COMP_CWORD` provided by bash to shell functions. The
 word to be completed is at `$words->[$cword]`.
 
+Note that COMP_LINE includes the command name. If you want the command-line
+arguments only (like in `@ARGV`), you need to strip the first element from
+`$words` and reduce `$cword` by 1.
+
+
 _
     },
     result_naked => 1,
