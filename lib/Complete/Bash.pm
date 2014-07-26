@@ -311,12 +311,12 @@ sub format_completion {
     for (@lines) {
         if ($escmode eq 'shellvar') {
             # don't escape $
-            s!([^A-Za-z0-9,+._/\$-])!\\$1!g;
+            s!([^A-Za-z0-9,+._/\$~-])!\\$1!g;
         } elsif ($escmode eq 'none') {
             # no escaping
         } else {
             # default
-            s!([^A-Za-z0-9,+._/:-])!\\$1!g;
+            s!([^A-Za-z0-9,+._/:~-])!\\$1!g;
         }
     }
 
