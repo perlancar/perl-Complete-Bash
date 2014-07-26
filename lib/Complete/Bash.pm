@@ -28,6 +28,17 @@ and backslashes are by default stripped, unless you specify `preserve_quotes`;
 2) no word-breaking characters aside from whitespaces are used, unless you
 specify more word-breaking characters by setting `word_breaks`.
 
+Caveats:
+
+* Due to the way bash parses the command line, the two below are equivalent:
+
+    % cmd --foo=bar
+    % cmd --foo = bar
+
+  Because they both expand to `['--foo', '=', 'bar']`, when `=` is used as a
+  word-breaking character. But obviously `Getopt::Long` does not regard the two
+  as equivalent.
+
 _
     args_as => 'array',
     args => {
