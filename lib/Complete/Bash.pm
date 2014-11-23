@@ -366,7 +366,7 @@ return the list of words one per-line to STDOUT. An example:
  #!/usr/bin/perl
  use Complete::Bash qw(parse_cmdline format_completion);
  use Complete::Util qw(complete_array_elem);
- my ($words, $cword) = parse_cmdline();
+ my ($words, $cword) = @{ parse_cmdline() };
  my $res = complete_array_elem(array=>[qw/--help --verbose --version/], word=>$words->[$cword]);
  print format_completion($res);
 
