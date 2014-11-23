@@ -21,12 +21,12 @@ $SPEC{parse_cmdline} = {
     summary => 'Parse shell command-line for processing by completion routines',
     description => <<'_',
 
-Currently only supports bash. This function basically converts COMP_LINE (str)
-and COMP_POINT (int) to become COMP_WORDS (array) and COMP_CWORD (int), like
-what bash supplies to shell functions. The differences with bash are: 1) quotes
-and backslashes are by default stripped, unless you specify `preserve_quotes`;
-2) no word-breaking characters aside from whitespaces are used, unless you
-specify more word-breaking characters by setting `word_breaks`.
+This function basically converts COMP_LINE (str) and COMP_POINT (int) to become
+COMP_WORDS (array) and COMP_CWORD (int), like what bash supplies to shell
+functions. The differences with bash are: 1) quotes and backslashes are by
+default stripped, unless you specify `preserve_quotes`; 2) no word-breaking
+characters aside from whitespaces are used, unless you specify more
+word-breaking characters by setting `word_breaks`.
 
 Caveats:
 
@@ -35,9 +35,9 @@ Caveats:
     % cmd --foo=bar
     % cmd --foo = bar
 
-  Because they both expand to `['--foo', '=', 'bar']`, when `=` is used as a
-  word-breaking character. But obviously `Getopt::Long` does not regard the two
-  as equivalent.
+Because they both expand to `['--foo', '=', 'bar']`, when `=` is used as a
+word-breaking character. But obviously `Getopt::Long` does not regard the two as
+equivalent.
 
 _
     args_as => 'array',
