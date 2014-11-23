@@ -287,6 +287,10 @@ _
             req=>1,
             pos=>0,
         },
+        as => {
+            schema => {'str*', in=>['string', 'array']},
+            default => 'string',
+        },
     },
     result => {
         summary => 'Formatted string (or array, if `as` is set to `array`)',
