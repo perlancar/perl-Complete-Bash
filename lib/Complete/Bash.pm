@@ -380,10 +380,6 @@ return the list of words one per-line to STDOUT. An example:
 
 This module provides routines for you to be doing the above.
 
-Instead of being called by bash as an external command every time user presses
-Tab, you can also use Perl to I<generate> bash C<complete> scripts for you. See
-L<Complete::BashGen>.
-
 
 =head1 TODOS
 
@@ -393,8 +389,6 @@ format_completion(): Accept regex for path_sep.
 =head1 SEE ALSO
 
 L<Complete>
-
-L<Complete::BashGen>
 
 Other modules related to bash shell tab completion: L<Bash::Completion>,
 L<Getopt::Complete>. L<Term::Bash::Completion::Generator>
