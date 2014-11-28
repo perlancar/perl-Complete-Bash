@@ -226,12 +226,8 @@ Bash accepts completion reply in the form of one entry per line to STDOUT. Some
 characters will need to be escaped. This function helps you do the formatting,
 with some options.
 
-This function accepts an array (the result of a `complete_*` function), _or_ a
-hash (which contains the completion array from a `complete_*` function as well
-as other metadata for formatting hints). Known keys:
-
-* `completion` (array): The completion array. You can put the result of
-  `complete_*` function here.
+This function accepts completion answer structure as described in the `Complete`
+POD. Aside from `words`, this function also recognizes these keys:
 
 * `as` (str): Either `string` (the default) or `array` (to return array of lines
   instead of the lines joined together). Returning array is useful if you are
@@ -276,8 +272,8 @@ as other metadata for formatting hints). Known keys:
 _
     args_as => 'array',
     args => {
-        shell_completion => {
-            summary => 'Result of shell completion',
+        completion => {
+            summary => 'Completion answer structure',
             description => <<'_',
 
 Either an array or hash. See function description for more details.
@@ -297,8 +293,8 @@ _
 sub format_completion {
     my ($hcomp) = @_;
 
-    $hcomp = {completion=>$hcomp} unless ref($hcomp) eq 'HASH';
-    my $comp     = $hcomp->{completion};
+    $hcomp = {words=>$hcomp} unless ref($hcomp) eq 'HASH';
+    my $comp     = $hcomp->{words};
     my $as       = $hcomp->{as} // 'string';
     my $escmode  = $hcomp->{escmode} // 'default';
     my $path_sep = $hcomp->{path_sep};

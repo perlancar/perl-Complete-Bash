@@ -21,38 +21,38 @@ subtest "accepts array of hashref" => sub {
 };
 
 subtest "escmode default" => sub {
-    is(format_completion({completion=>['a /:$']}),
+    is(format_completion({words=>['a /:$']}),
        "a\\ /:\\\$\n");
 };
 
 subtest "escmode none" => sub {
-    is(format_completion({completion=>['a /:$'], escmode=>'none'}),
+    is(format_completion({words=>['a /:$'], escmode=>'none'}),
        "a /:\$\n");
 };
 
 subtest "escmode shellvar" => sub {
-    is(format_completion({completion=>['a /:$'], escmode=>'shellvar'}),
+    is(format_completion({words=>['a /:$'], escmode=>'shellvar'}),
        "a\\ /\\:\$\n");
 };
 
 subtest "as array" => sub {
-    is_deeply(format_completion({completion=>['a ','b'], as=>'array'}),
+    is_deeply(format_completion({words=>['a ','b'], as=>'array'}),
               ["a\\ ",'b']);
 };
 
 subtest "path_sep /" => sub {
-    is(format_completion({completion=>['a/'], path_sep=>'/'}),
+    is(format_completion({words=>['a/'], path_sep=>'/'}),
        "a/\na/\\ \n");
-    is(format_completion({completion=>['a/', 'b/'], path_sep=>'/'}),
+    is(format_completion({words=>['a/', 'b/'], path_sep=>'/'}),
        "a/\nb/\n");
 };
 
 subtest "path_sep ::" => sub {
-    is(format_completion({completion=>['a/'], path_sep=>'::'}),
+    is(format_completion({words=>['a/'], path_sep=>'::'}),
        "a/\n");
-    is(format_completion({completion=>['a::'], path_sep=>'::'}),
+    is(format_completion({words=>['a::'], path_sep=>'::'}),
        "a::\na::\\ \n");
-    is(format_completion({completion=>['a::', 'b::'], path_sep=>'::'}),
+    is(format_completion({words=>['a::', 'b::'], path_sep=>'::'}),
        "a::\nb::\n");
 };
 
