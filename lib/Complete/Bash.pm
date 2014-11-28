@@ -91,6 +91,20 @@ arguments only (like in `@ARGV`), you need to strip the first element from
 _
     },
     result_naked => 1,
+    links => [
+        {
+            url => 'pm:Parse::CommandLine',
+            description => <<'_',
+
+The module `Parse::CommandLine` has a function called `parse_command_line()`
+which is similar, breaking a command-line string into words (in fact, currently
+`parse_cmdline()`'s implementation is stolen from this module). However,
+`parse_cmdline()` does not die on unclosed quotes and allows custom
+word-breaking characters.
+
+_
+        },
+    ],
 };
 sub parse_cmdline {
     my ($line, $point, $word_breaks, $preserve_quotes) = @_;
