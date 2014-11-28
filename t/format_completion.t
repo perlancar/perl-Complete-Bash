@@ -8,8 +8,16 @@ use warnings;
 use Complete::Bash qw(format_completion);
 use Test::More;
 
-subtest "accepts array too" => sub {
+subtest "accepts array of str" => sub {
     is(format_completion([qw/a b c/]), "a\nb\nc\n");
+};
+
+subtest "accepts array of hashref" => sub {
+    is(format_completion([
+        {word=>'a', description=>'da'},
+        {word=>'b', description=>'db'},
+        {word=>'c', description=>'dc'},
+    ]), "a\nb\nc\n");
 };
 
 subtest "escmode default" => sub {

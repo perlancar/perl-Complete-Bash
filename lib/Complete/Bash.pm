@@ -303,27 +303,37 @@ sub format_completion {
     my $escmode  = $hcomp->{escmode} // 'default';
     my $path_sep = $hcomp->{path_sep};
 
-    if (defined($path_sep) && @$comp == 1 && $comp->[0] =~ /\Q$path_sep\E\z/) {
-        $comp = [$comp->[0], "$comp->[0] "];
+    if (defined($path_sep) && @$comp == 1) {
+        my $re = qr/\Q$path_sep\E\z/;
+        my $word;
+        if (ref($comp->[0]) eq 'HASH') {
+            $comp = [$comp->[0], {word=>"$comp->[0] "}] if
+                $comp->[0]{word} =~ $re;
+        } else {
+            $comp = [$comp->[0], "$comp->[0] "]
+                if $comp->[0] =~ $re;
+        }
     }
 
-    my @lines = @$comp;
-    for (@lines) {
+    my @res;
+    for my $entry (@$comp) {
+        my $word = ref($entry) eq 'HASH' ? $entry->{word} : $entry;
         if ($escmode eq 'shellvar') {
             # don't escape $
-            s!([^A-Za-z0-9,+._/\$~-])!\\$1!g;
+            $word =~ s!([^A-Za-z0-9,+._/\$~-])!\\$1!g;
         } elsif ($escmode eq 'none') {
             # no escaping
         } else {
             # default
-            s!([^A-Za-z0-9,+._/:~-])!\\$1!g;
+            $word =~ s!([^A-Za-z0-9,+._/:~-])!\\$1!g;
         }
+        push @res, $word;
     }
 
     if ($as eq 'array') {
-        return \@lines;
+        return \@res;
     } else {
-        return join("", map {($_, "\n")} @lines);
+        return join("", map {($_, "\n")} @res);
     }
 }
 
