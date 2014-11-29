@@ -16,6 +16,13 @@ our @EXPORT_OK = qw(
 
 our %SPEC;
 
+$SPEC{':package'} = {
+    v => 1.1,
+    links => [
+        {url => 'pm:Complete'},
+    ],
+};
+
 $SPEC{parse_cmdline} = {
     v => 1.1,
     summary => 'Parse shell command-line for processing by completion routines',
@@ -403,8 +410,6 @@ format_completion(): Accept regex for path_sep.
 
 
 =head1 SEE ALSO
-
-L<Complete>
 
 Other modules related to bash shell tab completion: L<Bash::Completion>,
 L<Getopt::Complete>. L<Term::Bash::Completion::Generator>
