@@ -331,12 +331,12 @@ sub parse_options {
                 push @argv, $words->[$_];
             }
             last;
-        } elsif ($word =~ /\A-(\w+)\z/) {
+        } elsif ($word =~ /\A-(\w*)\z/) {
             $types[$i] = 'opt_name';
             for (split '', $1) {
                 push @{ $opts{$_} }, undef;
-                $i++; next;
             }
+            $i++; next;
         } elsif ($word =~ /\A-([\w?])(.*)/) {
             $types[$i] = 'opt_name';
             # XXX currently not completing option value
