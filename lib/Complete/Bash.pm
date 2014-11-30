@@ -330,7 +330,7 @@ sub parse_options {
             }
             $types[$i] = 'separator';
             for ($i+1 .. @$words-1) {
-                $types[$_] = 'arg';
+                $types[$_] = 'arg,' . @argv;
                 push @argv, $words->[$_];
             }
             last;
@@ -363,7 +363,7 @@ sub parse_options {
                 $i++; next;
             }
         } else {
-            $types[$i] = 'arg';
+            $types[$i] = 'arg,' . @argv;
             push @argv, $word;
             $i++; next;
         }
