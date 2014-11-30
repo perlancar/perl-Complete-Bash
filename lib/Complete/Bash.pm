@@ -8,6 +8,7 @@ require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
                        parse_cmdline
+                       parse_options
                        format_completion
                );
 
@@ -236,6 +237,146 @@ sub parse_cmdline {
     }
 
     return [\@words, $cword];
+}
+
+$SPEC{parse_options} = {
+    v => 1.1,
+    summary => 'Parse command-line for options and arguments, '.
+        'more or less like Getopt::Long',
+    description => <<'_',
+
+Parse command-line into words using `parse_cmdline()` then separate options and
+arguments. Since this routine does not accept `Getopt::Long` (this routine is
+meant to be a generic option parsing of command-lines), it uses a few simple
+rules to server the common cases:
+
+* After `--`, the rest of the words are arguments (just like Getopt::Long).
+
+* If we get something like `-abc` (a single dash followed by several letters) it
+  is assumed to be a bundle of short options.
+
+* If we get something like `-MData::Dump` (a single dash, followed by a letter,
+  followed by some letters *and* non-letters/numbers) it is assumed to be an
+  option (`-M`) followed by a value.
+
+* If we get something like `--foo` it is a long option. If the next word is an
+  option (starts with a `-`) then it is assumed that this option does not have
+  argument. Otherwise, the next word is assumed to be this option's value.
+
+* Otherwise, it is an argument (that is, permute is assumed).
+
+_
+
+    args => {
+        cmdline => {
+            summary => 'Command-line, defaults to COMP_LINE environment',
+            schema => 'str*',
+        },
+        point => {
+            summary => 'Point/position to complete in command-line, '.
+                'defaults to COMP_POINT',
+            schema => 'int*',
+        },
+        words => {
+            summary => 'Alternative to passing `cmdline` and `point`',
+            schema => ['array*', of=>'str*'],
+            description => <<'_',
+
+If you already did a `parse_cmdline()`, you can pass the words result (the first
+element) here to avoid calling `parse_cmdline()` twice.
+
+_
+        },
+        cword => {
+            summary => 'Alternative to passing `cmdline` and `point`',
+            schema => ['array*', of=>'str*'],
+            description => <<'_',
+
+If you already did a `parse_cmdline()`, you can pass the cword result (the
+second element) here to avoid calling `parse_cmdline()` twice.
+
+_
+        },
+    },
+    result => {
+        schema => 'hash*',
+    },
+};
+sub parse_options {
+    # options => {name1=>[val], name2=>[val, ...]},
+    # argv => [arg0, ...]
+    # type_at_word => ... (opt_name, opt_val, arg)
+    my %args = @_;
+
+    my ($words, $cword) = @_;
+    if ($args{words}) {
+        ($words, $cword) = ($args{words}, $args{cword});
+    } else {
+        ($words, $cword) = @{parse_cmdline($args{cmdline}, $args{point}, '=')};
+    }
+
+    my @types;
+    my %opts;
+    my @argv;
+    my $type;
+    $types[0] = 'command';
+    my $i = 1;
+    while ($i < @$words) {
+        my $word = $words->[$i];
+        if ($word eq '--') {
+            if ($i == $cword) {
+                $types[$i] = 'opt_name';
+                $i++; next;
+            }
+            $types[$i] = 'separator';
+            for ($i+1 .. @$words-1) {
+                $types[$_] = 'arg';
+                push @argv, $words->[$_];
+            }
+            last;
+        } elsif ($word =~ /\A-(\w+)\z/) {
+            $types[$i] = 'opt_name';
+            for (split '', $1) {
+                push @{ $opts{$_} }, undef;
+                $i++; next;
+            }
+        } elsif ($word =~ /\A-([\w?])(.*)/) {
+            $types[$i] = 'opt_name';
+            # XXX currently not completing option value
+            push @{ $opts{$1} }, $2;
+            $i++; next;
+        } elsif ($word =~ /\A--(\w[\w-]+)\z/) {
+            $types[$i] = 'opt_name';
+            my $opt = $1;
+            $i++;
+            if ($i < @$words) {
+                if ($words->[$i] eq '=') {
+                    $types[$i] = 'separator';
+                    $i++;
+                }
+                if ($words->[$i] =~ /\A-/) {
+                    push @{ $opts{$opt} }, undef;
+                    next;
+                }
+                $types[$i] = 'opt_val';
+                push @{ $opts{$opt} }, $words->[$i];
+                $i++; next;
+            }
+        } else {
+            $types[$i] = 'arg';
+            push @argv, $word;
+            $i++; next;
+        }
+    }
+
+    return {
+        options   => \%opts,
+        argv      => \@argv,
+        cword     => $cword,
+        words     => $words,
+        word_type => $types[$cword],
+        #_types    => \@types,
+    };
 }
 
 $SPEC{format_completion} = {
