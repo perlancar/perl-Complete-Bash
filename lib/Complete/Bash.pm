@@ -303,9 +303,6 @@ _
     },
 };
 sub parse_options {
-    # options => {name1=>[val], name2=>[val, ...]},
-    # argv => [arg0, ...]
-    # type_at_word => ... (opt_name, opt_val, arg)
     my %args = @_;
 
     my ($words, $cword) = @_;
@@ -370,7 +367,7 @@ sub parse_options {
     }
 
     return {
-        options   => \%opts,
+        opts      => \%opts,
         argv      => \@argv,
         cword     => $cword,
         words     => $words,
