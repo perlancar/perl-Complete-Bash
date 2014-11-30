@@ -16,27 +16,31 @@ sub _l {
     ($line, $point);
 }
 
+my $res;
+
+$res = parse_options(cmdline=>q[cmd --help --opt val arg1 arg2 -- --arg3], point=>13);
 is_deeply(
-    parse_options(cmdline=>q[cmd --help --opt val arg1 arg2 -- --arg3], point=>13),
+    $res,
     {
         argv      => ["arg1", "arg2", "--arg3"],
         cword     => 2,
-        options   => { help => [undef], opt => ["val"] },
+        opts      => { help => [undef], opt => ["val"] },
         word_type => "opt_name",
         words     => ["cmd", "--help", "--opt", "val", "arg1", "arg2", "--", "--arg3"],
     },
-);
+) or diag explain $res;
 
+$res = parse_options(cmdline=>q[cmd -abc -MData::Dump], point=>1),
 is_deeply(
-    parse_options(cmdline=>q[cmd -abc -MData::Dump], point=>1),
+    $res,
     {
         argv      => [],
         cword     => 0,
-        options   => { a => [undef], b => [undef], c => [undef] },
+        opts      => { a => [undef], b => [undef], c => [undef], M => ["Data::Dump"] },
         word_type => "command",
         words     => ["cmd", "-abc", "-MData::Dump"],
     },
-);
+) or diag explain $res;
 
 DONE_TESTING:
 done_testing;
