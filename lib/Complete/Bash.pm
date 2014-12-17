@@ -19,6 +19,7 @@ our %SPEC;
 
 $SPEC{':package'} = {
     v => 1.1,
+    summary => 'Completion module for bash shell',
     links => [
         {url => 'pm:Complete'},
     ],
@@ -493,7 +494,7 @@ sub format_completion {
 }
 
 1;
-#ABSTRACT: Completion module for bash shell
+#ABSTRACT:
 
 =head1 DESCRIPTION
 
