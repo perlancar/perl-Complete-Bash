@@ -1,8 +1,13 @@
 package Complete::Bash;
 
+# DATE
+# VERSION
+
 use 5.010001;
 use strict;
 use warnings;
+
+#use Complete;
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -11,9 +16,6 @@ our @EXPORT_OK = qw(
                        parse_options
                        format_completion
                );
-
-# DATE
-# VERSION
 
 our %SPEC;
 
