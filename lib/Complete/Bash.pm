@@ -426,10 +426,7 @@ POD. Aside from `words`, this function also recognizes these keys:
   Path mode is not restricted to completing filesystem paths. Anything path-like
   can use it. For example when you are completing Java or Perl package name
   (e.g. `com.company.product.whatever` or `File::Spec::Unix`) you can use this
-  mode (with `path_sep` appropriately set to, e.g. `.` or `::`). But note that
-  in the case of `::` since colon is a word-breaking character in Bash by
-  default, when typing you'll need to escape it (e.g. `mpath File\:\:Sp<tab>`)
-  or use it inside quotes (e.g. `mpath "File::Sp<tab>`).
+  mode (with `path_sep` appropriately set to, e.g. `.` or `::`).
 
 _
     args_as => 'array',
