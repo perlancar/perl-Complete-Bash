@@ -424,9 +424,9 @@ POD. Aside from `words`, this function also recognizes these keys:
   space at the end) to prevent bash from adding a space automatically.
 
   Path mode is not restricted to completing filesystem paths. Anything path-like
-  can use it. For example when you are completing Java or Perl package name
-  (e.g. `com.company.product.whatever` or `File::Spec::Unix`) you can use this
-  mode (with `path_sep` appropriately set to, e.g. `.` or `::`).
+  can use it. For example when you are completing Java or Perl module name (e.g.
+  `com.company.product.whatever` or `File::Spec::Unix`) you can use this mode
+  (with `path_sep` appropriately set to, e.g. `.` or `::`).
 
 _
     args_as => 'array',
