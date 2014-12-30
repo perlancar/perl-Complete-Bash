@@ -485,18 +485,19 @@ sub format_completion {
     # types e.g. "Text::AN" and we provide completion ["Text::ANSI"] then bash
     # will change the word at cursor to become "Text::Text::ANSI" since it sees
     # the current word as "AN" and not "Text::AN". the workaround is to chop
-    # /Text::/ from completion answers. this doesn't always work perfectly (e.g.
-    # we can also provide completion for "t::an" (exp_im_path and ci feature)
-    # but a good-enough workaround for common cases. and we currently only
+    # /^Text::/ from completion answers. btw, we actually chop /^text::/i to
+    # handle case-insensitive matching, although this does not have the ability
+    # to replace the current word (e.g. if we type 'text::an' then bash can only
+    # replace the current word 'an' with 'ANSI). also, we currently only
     # consider ':' since that occurs often.
     if (defined($opts->{word})) {
         if ($opts->{word} =~ s/(.+:)//) {
             my $prefix = $1;
             for (@$comp) {
                 if (ref($_) eq 'HASH') {
-                    $_->{word} =~ s/\A\Q$prefix\E//;
+                    $_->{word} =~ s/\A\Q$prefix\E//i;
                 } else {
-                    s/\A\Q$prefix\E//;
+                    s/\A\Q$prefix\E//i;
                 }
             }
         }
