@@ -575,11 +575,6 @@ return the list of words one per-line to STDOUT. An example:
 This module provides routines for you to be doing the above.
 
 
-=head1 TODOS
-
-format_completion(): Accept regex for path_sep.
-
-
 =head1 SEE ALSO
 
 Other modules related to bash shell tab completion: L<Bash::Completion>,
