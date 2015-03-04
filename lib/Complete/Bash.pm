@@ -576,12 +576,10 @@ return the list of words one per-line to STDOUT. An example:
 This module provides routines for you to be doing the above.
 
 
-=head1 SEE ALSO
+=head1 SEE ALSO (2)
 
 Other modules related to bash shell tab completion: L<Bash::Completion>,
 L<Getopt::Complete>. L<Term::Bash::Completion::Generator>
 
 Programmable Completion section in Bash manual:
 L<https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html>
-
-=cut
