@@ -20,18 +20,18 @@ subtest "accepts array of hashref" => sub {
     ]), "a\nb\nc\n");
 };
 
-subtest "escmode default" => sub {
+subtest "esc_mode default" => sub {
     is(format_completion({words=>['a /:$']}),
        "a\\ /:\\\$\n");
 };
 
-subtest "escmode none" => sub {
-    is(format_completion({words=>['a /:$'], escmode=>'none'}),
+subtest "esc_mode none" => sub {
+    is(format_completion({words=>['a /:$'], esc_mode=>'none'}),
        "a /:\$\n");
 };
 
-subtest "escmode shellvar" => sub {
-    is(format_completion({words=>['a /:$'], escmode=>'shellvar'}),
+subtest "esc_mode shellvar" => sub {
+    is(format_completion({words=>['a /:$'], esc_mode=>'shellvar'}),
        "a\\ /\\:\$\n");
 };
 

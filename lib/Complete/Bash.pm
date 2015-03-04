@@ -396,7 +396,7 @@ POD. Aside from `words`, this function also recognizes these keys:
   doing completion inside `Term::ReadLine`, for example, where the library
   expects an array.
 
-* `escmode` (str): Escaping mode for entries. Either `default` (most
+* `esc_mode` (str): Escaping mode for entries. Either `default` (most
   nonalphanumeric characters will be escaped), `shellvar` (like `default`, but
   dollar sign `$` will not be escaped, convenient when completing environment
   variables for example), `filename` (currently equals to `default`), `option`
@@ -461,7 +461,8 @@ sub format_completion {
     $hcomp = {words=>$hcomp} unless ref($hcomp) eq 'HASH';
     my $comp     = $hcomp->{words};
     my $as       = $hcomp->{as} // 'string';
-    my $escmode  = $hcomp->{escmode} // 'default';
+    # 'escmode' key is deprecated (Complete 0.11-) and will be removed later
+    my $esc_mode = $hcomp->{esc_mode} // $hcomp->{escmode} // 'default';
     my $path_sep = $hcomp->{path_sep};
 
     if (defined($path_sep) && @$comp == 1) {
@@ -506,10 +507,10 @@ sub format_completion {
     my @res;
     for my $entry (@$comp) {
         my $word = ref($entry) eq 'HASH' ? $entry->{word} : $entry;
-        if ($escmode eq 'shellvar') {
+        if ($esc_mode eq 'shellvar') {
             # don't escape $
             $word =~ s!([^A-Za-z0-9,+._/\$~-])!\\$1!g;
-        } elsif ($escmode eq 'none') {
+        } elsif ($esc_mode eq 'none') {
             # no escaping
         } else {
             # default
