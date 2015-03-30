@@ -35,9 +35,12 @@ $SPEC{parse_cmdline} = {
 This function basically converts COMP_LINE (str) and COMP_POINT (int) to become
 COMP_WORDS (array) and COMP_CWORD (int), like what bash supplies to shell
 functions. The differences with bash are: 1) quotes and backslashes are by
-default stripped, unless you specify `preserve_quotes`; 2) no word-breaking
-characters aside from whitespaces are used, unless you specify more
-word-breaking characters by setting `word_breaks`.
+default stripped, unless you turn on `preserve_quotes`; 2) variables are
+substituted with their values except for the word at cursor (or when you turn on
+`preserve_vars`); 3) tildes (~) are expanded with user's home directory except
+for the word at cursor (or when you turn on `preserve_tildes`); 4) by default no
+word-breaking characters aside from whitespaces are used, unless you specify
+more word-breaking characters by setting `word_breaks`.
 
 Caveats:
 
@@ -84,6 +87,34 @@ _
             default => 0,
             pos => 3,
         },
+        preserve_vars => {
+            summary => 'Whether to preserve variables instead of expanding them',
+            description => <<'_',
+
+The default is to expand variables with their values except for words quoted
+with single quotes or word at cursor position. This is done to ease parsing by
+other routines that use this routine. But if you turn on `preserve_vars`,
+variables are never expanded.
+
+_
+            schema => 'bool',
+            default => 0,
+            pos => 4,
+        },
+        preserve_tildes => {
+            summary => 'Whether to preserve tildes instead of expanding them',
+            description => <<'_',
+
+The default is to expand tildes with user's home directory except for words
+quoted with single/double quotes or word at cursor position. This is done to
+ease parsing by other routines that use this routine. But if you turn on
+`preserve_tildes`, tildes are never expanded.
+
+_
+            schema => 'bool',
+            default => 0,
+            pos => 4,
+        },
     },
     result => {
         schema => ['array*', len=>2],
@@ -117,8 +148,27 @@ _
         },
     ],
 };
+sub _add_unquoted {
+    my $word = shift;
+    $word =~ s/\\(.)/$1/g;
+    $word;
+}
+
+sub _add_single_quoted {
+    my $word = shift;
+    $word =~ s/\\(.)/$1/g;
+    $word;
+}
+
+sub _add_double_quoted {
+    my $word = shift;
+    $word =~ s/\\(.)/$1/g;
+    $word;
+}
+
 sub parse_cmdline {
-    my ($line, $point, $word_breaks, $preserve_quotes) = @_;
+    no warnings 'uninitialized';
+    my ($line, $point, $word_breaks, $preserve_quotes, $preserve_vars, $preserve_tildes) = @_;
 
     $line  //= $ENV{COMP_LINE};
     $point //= $ENV{COMP_POINT} // 0;
@@ -127,119 +177,75 @@ sub parse_cmdline {
     die "$0: COMP_LINE not set, make sure this script is run under ".
         "bash completion (e.g. through complete -C)\n" unless defined $line;
 
-    my $pos = 0;
-    my $len = length($line);
-    # first word is ltrim-ed by bash
-    $line =~ s/\A(\s+)//gs and $pos += length($1);
-
     my @words;
-    my $buf;
     my $cword;
-    my $escaped;
-    my $inserted_empty_word;
-    my $double_quoted;
-    my $single_quoted;
+    my $pos = 0;
+    $line =~ s!(                                           # 1) everything
+                  (")((?: \\\\|\\"|[^"])*)(?:"|\z)(\s*) |  # 2) open "  3) content  4) space after
+                  (')((?: \\\\|\\'|[^'])*)(?:'|\z)(\s*) |  # 5) open '  6) content  7) space after
+                  ((?: \\\\|\\\s|\S)+)(\s*) |              # 8) unquoted word  9) space after
+                  \s+
+              )!
+                  $pos += length($1);
+                  #say "D:<$1> pos=$pos, point=$point";
+                  if ($2) { # double-quoted word
+                      if (not(defined $cword)) {
+                          if ($4 && $pos >= $point) {
+                              # we have gone past the word at cursor
+                              $cword = @words+1;
+                              push @words, _add_double_quoted($3, 0);
+                          } elsif ($pos-length($4) >= $point) {
+                              # we are at the word at cursor
+                              $cword = @words;
+                              push @words, _add_double_quoted($3, 1);
+                          } else {
+                              # we haven't reached the word at cursor
+                              push @words, _add_double_quoted($3, 0);
+                          }
+                      } else {
+                          push @words, _add_double_quoted($3, 0);
+                      }
+                  } elsif ($5) { # single-quoted word
+                      if (not(defined $cword)) {
+                          if ($7 && $pos >= $point) {
+                              # we have gone past the word at cursor
+                              $cword = @words+1;
+                              push @words, _add_single_quoted($6, 0);
+                          } elsif ($pos-length($7) >= $point) {
+                              # we are at the word at cursor
+                              $cword = @words;
+                              push @words, _add_single_quoted($6, 1);
+                          } else {
+                              # we haven't reached the word at cursor
+                              push @words, _add_single_quoted($6, 0);
+                          }
+                      } else {
+                          push @words, _add_single_quoted($6, 0);
+                      }
+                  } elsif ($8) { # unquoted word
+                      if (not(defined $cword)) {
+                          if ($9 && $pos >= $point) {
+                              # we have gone past the word at cursor
+                              $cword = @words+1;
+                              push @words, _add_unquoted($8, 0);
+                          } elsif ($pos-length($9) >= $point) {
+                              # we are at the word at cursor
+                              $cword = @words;
+                              push @words, _add_unquoted($8, 1);
+                          } else {
+                              # we haven't reached the word at cursor
+                              push @words, _add_unquoted($8, 0);
+                          }
+                      } else {
+                          push @words, _add_unquoted($8, 0);
+                      }
+                  }
+    !egx;
 
-    my @chars = split //, $line;
-    $pos--;
-    for my $char (@chars) {
-        $pos++;
-        #say "D:pos=$pos, char=$char, \@words=[".join(", ", @words)."]";
-        if (!defined($cword) && $pos == $point) {
-            $cword = @words;
-            #say "D:setting cword to $cword";
-        }
+    $cword //= @words;
+    $words[$cword] //= '';
 
-        if ($escaped) {
-            $buf .= $preserve_quotes ? "\\$char" : $char;
-            $escaped = undef;
-            next;
-        }
-
-        if ($char eq '\\') {
-            if ($single_quoted) {
-                $buf .= $char;
-            } else {
-                $escaped = 1;
-            }
-            next;
-        }
-
-        if ($char =~ /\s/) {
-            if ($single_quoted || $double_quoted) {
-                $buf .= $char;
-            } else {
-                if (defined $buf) {
-                    #say "D:pushing word <$buf>";
-                    push @words, $buf;
-                    undef $buf;
-                } elsif (!$inserted_empty_word &&
-                             $pos==$point && $chars[$pos-1] =~ /\s/ &&
-                                 $pos+1 < $len && $chars[$pos+1] =~ /\s/) {
-                    #say "D:insert empty word";
-                    push @words, '' unless $words[-1] eq '';
-                    $inserted_empty_word++;
-                }
-            }
-            next;
-        } else {
-            $inserted_empty_word = 0;
-        }
-
-        if ($char eq '"') {
-            if ($single_quoted) {
-                $buf .= $char;
-                next;
-            }
-            $double_quoted = !$double_quoted;
-            if (!$double_quoted) {
-                $buf .= '"' if $preserve_quotes;
-            }
-            next;
-        }
-
-        if ($char eq "'") {
-            if ($double_quoted) {
-                $buf .= $char;
-                next;
-            }
-            $single_quoted = !$single_quoted;
-            if (!$single_quoted) {
-                $buf .= "'" if $preserve_quotes;
-            }
-            next;
-        }
-
-        if (index($word_breaks, $char) >= 0) {
-            if ($escaped || $single_quoted || $double_quoted) {
-                $buf .= $single_quoted ? "'":'"' if !defined($buf) && $preserve_quotes;
-                $buf .= $char;
-                next;
-            }
-            push @words, $buf if defined $buf;
-            push @words, $char;
-            undef $buf;
-            next;
-        }
-
-        $buf .= $single_quoted ? "'" : $double_quoted ? '"' : '' if !defined($buf) && $preserve_quotes;
-        $buf .= $char;
-    }
-
-    if (defined $buf) {
-        #say "D:pushing last word <$buf>";
-        push @words, $buf;
-        $cword //= @words-1;
-    } else {
-        if (!@words || $words[-1] ne '') {
-            $cword //= @words;
-            $words[$cword] //= '';
-        } else {
-            $cword //= @words-1;
-        }
-    }
-
-    return [\@words, $cword];
+    [\@words, $cword];
 }
 
 $SPEC{parse_options} = {
