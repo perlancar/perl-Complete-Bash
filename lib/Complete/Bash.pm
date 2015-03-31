@@ -27,6 +27,57 @@ $SPEC{':package'} = {
     ],
 };
 
+sub _expand_tilde {
+    my ($user, $slash) = @_;
+    my @ent;
+    if (length $user) {
+        @ent = getpwnam($user);
+    } else {
+        @ent = getpwuid($>);
+        $user = $ent[0];
+    }
+    return $ent[7] . $slash if @ent;
+    "~$user$slash"; # return as-is when failed
+}
+
+sub _add_unquoted {
+    no warnings 'uninitialized';
+
+    my ($word, $is_cur_word, $after_ws) = @_;
+
+    #say "D:add_unquoted word=$word is_cur_word=$is_cur_word after_ws=$after_ws";
+
+    $word =~ s!^(~)(\w*)(/|\z) |  # 1) tilde  2) username  3) optional slash
+               \\(.)           |  # 4) escaped char
+               \$(\w+)            # 5) variable name
+              !
+                  $1 ? (not($after_ws) || $is_cur_word ? "$1$2$3" : _expand_tilde($2, $3)) :
+                      $4 ? $4 :
+                          ($is_cur_word ? "\$$5" : $ENV{$5})
+                              !egx;
+    $word;
+}
+
+sub _add_double_quoted {
+    no warnings 'uninitialized';
+
+    my ($word, $is_cur_word) = @_;
+
+    $word =~ s!\\(.)           |  # 1) escaped char
+               \$(\w+)            # 2) variable name
+              !
+                  $1 ? $1 :
+                      ($is_cur_word ? "\$$2" : $ENV{$2})
+                          !egx;
+    $word;
+}
+
+sub _add_single_quoted {
+    my $word = shift;
+    $word =~ s/\\(.)/$1/g;
+    $word;
+}
+
 $SPEC{parse_cmdline} = {
     v => 1.1,
     summary => 'Parse shell command-line for processing by completion routines',
@@ -44,7 +95,9 @@ quotes and backslashes);
 
 2) variables are substituted with their values from environment variables except
 for the current word (COMP_WORDS[COMP_CWORD]) (bash does not perform variable
-substitution for COMP_WORDS);
+substitution for COMP_WORDS). However, note that special shell variables that
+are not environment variables like `$0`, `$_`, `$IFS` will not be replaced
+correctly because bash does not export those variables for us.
 
 3) tildes (~) are expanded with user's home directory except for the current
 word (bash does not perform tilde expansion for COMP_WORDS);
@@ -100,24 +153,6 @@ _
     links => [
     ],
 };
-sub _add_unquoted {
-    my $word = shift;
-    $word =~ s/\\(.)/$1/g;
-    $word;
-}
-
-sub _add_single_quoted {
-    my $word = shift;
-    $word =~ s/\\(.)/$1/g;
-    $word;
-}
-
-sub _add_double_quoted {
-    my $word = shift;
-    $word =~ s/\\(.)/$1/g;
-    $word;
-}
-
 sub parse_cmdline {
     no warnings 'uninitialized';
     my ($line, $point) = @_;
@@ -135,6 +170,7 @@ sub parse_cmdline {
     my $after_ws = 1;
     my $chunk;
     my $add_blank;
+    my $is_cur_word;
     $line =~ s!(                                                 # 1) everything
                   (")((?: \\\\|\\"|[^"])*)(?:"|\z)(\s*)       |  # 2) open "  3) content  4) space after
                   (')((?: \\\\|\\'|[^'])*)(?:'|\z)(\s*)       |  # 5) open '  6) content  7) space after
@@ -158,9 +194,16 @@ sub parse_cmdline {
                               $add_blank = 1;
                           }
                       }
-                      $chunk = $2 ? _add_double_quoted($3, 0) :
-                          $5 ? _add_single_quoted($6, 0) : _add_unquoted($8, 0);
 
+                      if ($after_ws) {
+                          $is_cur_word = defined($cword) && $cword==@words;
+                      } else {
+                          $is_cur_word = defined($cword) && $cword==@words-1;
+                      }
+                      $chunk =
+                          $2 ? _add_double_quoted($3, $is_cur_word) :
+                              $5 ? _add_single_quoted($6) :
+                                  _add_unquoted($8, $is_cur_word, $after_ws);
                       if ($after_ws) {
                           push @words, $chunk;
                       } else {
