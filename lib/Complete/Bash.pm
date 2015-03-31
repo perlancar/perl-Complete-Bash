@@ -134,18 +134,6 @@ _
     },
     result_naked => 1,
     links => [
-        {
-            url => 'pm:Parse::CommandLine',
-            description => <<'_',
-
-The module `Parse::CommandLine` has a function called `parse_command_line()`
-which is similar, breaking a command-line string into words (in fact, currently
-`parse_cmdline()`'s implementation is stolen from this module). However,
-`parse_cmdline()` does not die on unclosed quotes and allows custom
-word-breaking characters.
-
-_
-        },
     ],
 };
 sub _add_unquoted {
@@ -180,65 +168,75 @@ sub parse_cmdline {
     my @words;
     my $cword;
     my $pos = 0;
-    $line =~ s!(                                           # 1) everything
-                  (")((?: \\\\|\\"|[^"])*)(?:"|\z)(\s*) |  # 2) open "  3) content  4) space after
-                  (')((?: \\\\|\\'|[^'])*)(?:'|\z)(\s*) |  # 5) open '  6) content  7) space after
-                  ((?: \\\\|\\\s|\S)+)(\s*) |              # 8) unquoted word  9) space after
+    my $pos_min_ws = 0;
+    my $after_ws = 1;
+    $line =~ s!(                                            # 1) everything
+                  (")((?: \\\\|\\"|[^"])*)(?:"|\z)(\s*)  |  # 2) open "  3) content  4) space after
+                  (')((?: \\\\|\\'|[^'])*)(?:'|\z)(\s*)  |  # 5) open '  6) content  7) space after
+                  ((?: \\\\|\\"|\\'|\\\s|[^"'\s])+)(\s*) |  # 8) unquoted word  9) space after
                   \s+
               )!
                   $pos += length($1);
-                  #say "D:<$1> pos=$pos, point=$point";
+                  say "D:<$1> pos=$pos, point=$point, cword=$cword, after_ws=$after_ws";
+
                   if ($2) { # double-quoted word
+
                       if (not(defined $cword)) {
                           if ($4 && $pos >= $point) {
                               # we have gone past the word at cursor
-                              $cword = @words+1;
-                              push @words, _add_double_quoted($3, 0);
+                              $cword = @words;
                           } elsif ($pos-length($4) >= $point) {
                               # we are at the word at cursor
-                              $cword = @words;
-                              push @words, _add_double_quoted($3, 1);
-                          } else {
-                              # we haven't reached the word at cursor
-                              push @words, _add_double_quoted($3, 0);
-                          }
-                      } else {
-                          push @words, _add_double_quoted($3, 0);
+                              $cword = @words-1;
+                          } # else we haven't reached the word at cursor
                       }
+                      if ($after_ws) {
+                          push @words, _add_double_quoted($3, 0);
+                      } else {
+                          $words[-1] .= _add_double_quoted($3, 0);
+                      }
+                      $after_ws = $4 ? 1:0;
+
                   } elsif ($5) { # single-quoted word
+
                       if (not(defined $cword)) {
                           if ($7 && $pos >= $point) {
                               # we have gone past the word at cursor
-                              $cword = @words+1;
-                              push @words, _add_single_quoted($6, 0);
+                              $cword = @words;
                           } elsif ($pos-length($7) >= $point) {
                               # we are at the word at cursor
-                              $cword = @words;
-                              push @words, _add_single_quoted($6, 1);
-                          } else {
-                              # we haven't reached the word at cursor
-                              push @words, _add_single_quoted($6, 0);
-                          }
-                      } else {
-                          push @words, _add_single_quoted($6, 0);
+                              $cword = @words-1;
+                          } # else we haven't reached the word at cursor
                       }
+
+                      if ($after_ws) {
+                          push @words, _add_single_quoted($6, 0);
+                      } else {
+                          $words[-1] .= _add_single_quoted($6, 0);
+                      }
+                      $after_ws = $7 ? 1:0;
+
                   } elsif ($8) { # unquoted word
+
                       if (not(defined $cword)) {
                           if ($9 && $pos >= $point) {
                               # we have gone past the word at cursor
                               $cword = @words+1;
-                              push @words, _add_unquoted($8, 0);
                           } elsif ($pos-length($9) >= $point) {
                               # we are at the word at cursor
                               $cword = @words;
-                              push @words, _add_unquoted($8, 1);
-                          } else {
-                              # we haven't reached the word at cursor
-                              push @words, _add_unquoted($8, 0);
-                          }
-                      } else {
-                          push @words, _add_unquoted($8, 0);
+                          } # else we haven't reached the word at cursor
                       }
+
+                      if ($after_ws) {
+                          push @words, _add_unquoted($8, 0);
+                      } else {
+                          $words[-1] .= _add_unquoted($8, 0);
+                      }
+                      $after_ws = $9 ? 1:0;
+
+                  } else { # whitespace
+                      $after_ws = 1;
                   }
     !egx;
 

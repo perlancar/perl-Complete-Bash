@@ -52,6 +52,15 @@ subtest "double quotes" => sub {
     is_deeply(parse_cmdline(_l(q|aa "b c\\" ^|)), [['aa', 'b c" '], 1]);
     is_deeply(parse_cmdline(_l(q|aa "b c "^|)), [['aa', 'b c '], 1]);
     is_deeply(parse_cmdline(_l(q|aa "b c " ^|)), [['aa', 'b c ', ''], 2]);
+
+    # adjoint with unquoted word
+    is_deeply(parse_cmdline(_l(q|a"b^"|)), [['ab'], 0]);
+    is_deeply(parse_cmdline(_l(q|a"b"^|)), [['ab'], 0]);
+    is_deeply(parse_cmdline(_l(q|a"b" ^|)), [['ab', ''], 1]);
+    is_deeply(parse_cmdline(_l(q|a"b ^"|)), [['ab '], 0]);
+    is_deeply(parse_cmdline(_l(q|a"b  ^"|)), [['ab  '], 0]);
+    is_deeply(parse_cmdline(_l(q|a"b "^|)), [['ab '], 0]);
+    is_deeply(parse_cmdline(_l(q|a"b " ^|)), [['ab ', ''], 1]);
 };
 
 subtest "double quotes (preserve quotes)" => sub {
@@ -73,6 +82,15 @@ subtest "single quotes" => sub {
     is_deeply(parse_cmdline(_l(q|aa \\'b c^|)), [['aa', '\'b', 'c'], 2]);
     is_deeply(parse_cmdline(_l(q|aa 'b c '^|)), [['aa', 'b c '], 1]);
     is_deeply(parse_cmdline(_l(q|aa 'b c ' ^|)), [['aa', 'b c ', ''], 2]);
+
+    # adjoint with unquoted word
+    is_deeply(parse_cmdline(_l(q|a'b^'|)), [['ab'], 0]);
+    is_deeply(parse_cmdline(_l(q|a'b'^|)), [['ab'], 0]);
+    is_deeply(parse_cmdline(_l(q|a'b' ^|)), [['ab', ''], 1]);
+    is_deeply(parse_cmdline(_l(q|a'b ^'|)), [['ab '], 0]);
+    is_deeply(parse_cmdline(_l(q|a'b  ^'|)), [['ab  '], 0]);
+    is_deeply(parse_cmdline(_l(q|a'b '^|)), [['ab '], 0]);
+    is_deeply(parse_cmdline(_l(q|a'b ' ^|)), [['ab ', ''], 1]);
 };
 
 subtest "single quotes (preserve quotes)" => sub {
