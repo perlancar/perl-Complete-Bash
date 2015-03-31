@@ -1,5 +1,26 @@
 Revision history for Complete-Bash
 
+0.18    2015-03-31 (PERLANCAR)
+
+        - [Internal] Reimplement parse_cmdline() using regex instead of C-like
+          char-by-char parsing.
+
+        - [Removed feature] Remove option/parameter 'preserve_quotes' and
+          'word_breaks' because they are never used in my applications/other
+          libraries (and they complicate the new regex-based parsing
+          implementation). Extra word-breaking character used is always '=' and
+          that is now the behavior.
+
+        - [ux] Variable syntaxes in word in parse_cmdline() (like
+          '$HOME/foo.txt') are now substituted with variable values from
+          environment variables, except for the current word. Similarly, tildes
+          like '~/todo.txt' is now replaced with user home directory except for
+          the current word. This makes completing a command like this works:
+          'list-org-todos ~/organizer/todo.org --has-tags <tab>' (the
+          applications now see the tildes already expanded so they do not have
+          to parse it themselves).
+
+
 0.17    2015-03-04 (PERLANCAR)
 
 	- Change escmode to esc_mode (Complete 0.12), but old key is still
