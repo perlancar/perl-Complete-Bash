@@ -32,15 +32,28 @@ $SPEC{parse_cmdline} = {
     summary => 'Parse shell command-line for processing by completion routines',
     description => <<'_',
 
-This function basically converts COMP_LINE (str) and COMP_POINT (int) to become
-COMP_WORDS (array) and COMP_CWORD (int), like what bash supplies to shell
-functions. The differences with bash are: 1) quotes and backslashes are by
-default stripped, unless you turn on `preserve_quotes`; 2) variables are
-substituted with their values except for the word at cursor (or when you turn on
-`preserve_vars`); 3) tildes (~) are expanded with user's home directory except
-for the word at cursor (or when you turn on `preserve_tildes`); 4) by default no
-word-breaking characters aside from whitespaces are used, unless you specify
-more word-breaking characters by setting `word_breaks`.
+This function basically converts COMP_LINE (str) and COMP_POINT (int) into
+something like (but not exactly the same as) COMP_WORDS (array) and COMP_CWORD
+(int) that bash supplies to shell functions.
+
+The differences with bash are (these differences are mostly for parsing
+convenience for programs that use this routine):
+
+1) quotes and backslashes are stripped (bash's COMP_WORDS contains all the
+quotes and backslashes);
+
+2) variables are substituted with their values from environment variables except
+for the current word (COMP_WORDS[COMP_CWORD]) (bash does not perform variable
+substitution for COMP_WORDS);
+
+3) tildes (~) are expanded with user's home directory except for the current
+word (bash does not perform tilde expansion for COMP_WORDS);
+
+4) no word-breaking characters aside from whitespaces and `=` are currently used
+(bash uses COMP_WORDBREAKS which by default also include `:`, `;`, and so on).
+This is done for convenience of parsing of Getopt::Long-based applications. More
+word-breaking characters might be used in the future, e.g. when we want to
+handle complex bash statements like pipes, redirection, etc.
 
 Caveats:
 
@@ -49,9 +62,8 @@ Caveats:
     % cmd --foo=bar
     % cmd --foo = bar
 
-Because they both expand to `['--foo', '=', 'bar']`, when `=` is used as a
-word-breaking character. But obviously `Getopt::Long` does not regard the two as
-equivalent.
+Because they both expand to `['--foo', '=', 'bar']`. But obviously
+`Getopt::Long` does not regard the two as equivalent.
 
 _
     args_as => 'array',
@@ -66,54 +78,6 @@ _
                 'defaults to COMP_POINT',
             schema => 'int*',
             pos => 1,
-        },
-        word_breaks => {
-            summary => 'Extra characters to break word at',
-            description => <<'_',
-
-In addition to space and tab.
-
-Example: `=:`.
-
-Note that the characters won't break words if inside quotes or escaped.
-
-_
-            schema => 'str',
-            pos => 2,
-        },
-        preserve_quotes => {
-            summary => 'Whether to preserve quotes, like bash does',
-            schema => 'bool',
-            default => 0,
-            pos => 3,
-        },
-        preserve_vars => {
-            summary => 'Whether to preserve variables instead of expanding them',
-            description => <<'_',
-
-The default is to expand variables with their values except for words quoted
-with single quotes or word at cursor position. This is done to ease parsing by
-other routines that use this routine. But if you turn on `preserve_vars`,
-variables are never expanded.
-
-_
-            schema => 'bool',
-            default => 0,
-            pos => 4,
-        },
-        preserve_tildes => {
-            summary => 'Whether to preserve tildes instead of expanding them',
-            description => <<'_',
-
-The default is to expand tildes with user's home directory except for words
-quoted with single/double quotes or word at cursor position. This is done to
-ease parsing by other routines that use this routine. But if you turn on
-`preserve_tildes`, tildes are never expanded.
-
-_
-            schema => 'bool',
-            default => 0,
-            pos => 4,
         },
     },
     result => {
@@ -156,11 +120,10 @@ sub _add_double_quoted {
 
 sub parse_cmdline {
     no warnings 'uninitialized';
-    my ($line, $point, $word_breaks, $preserve_quotes, $preserve_vars, $preserve_tildes) = @_;
+    my ($line, $point) = @_;
 
     $line  //= $ENV{COMP_LINE};
     $point //= $ENV{COMP_POINT} // 0;
-    $word_breaks //= '';
 
     die "$0: COMP_LINE not set, make sure this script is run under ".
         "bash completion (e.g. through complete -C)\n" unless defined $line;
@@ -170,72 +133,51 @@ sub parse_cmdline {
     my $pos = 0;
     my $pos_min_ws = 0;
     my $after_ws = 1;
-    $line =~ s!(                                            # 1) everything
-                  (")((?: \\\\|\\"|[^"])*)(?:"|\z)(\s*)  |  # 2) open "  3) content  4) space after
-                  (')((?: \\\\|\\'|[^'])*)(?:'|\z)(\s*)  |  # 5) open '  6) content  7) space after
-                  ((?: \\\\|\\"|\\'|\\\s|[^"'\s])+)(\s*) |  # 8) unquoted word  9) space after
+    my $chunk;
+    my $add_blank;
+    $line =~ s!(                                                 # 1) everything
+                  (")((?: \\\\|\\"|[^"])*)(?:"|\z)(\s*)       |  # 2) open "  3) content  4) space after
+                  (')((?: \\\\|\\'|[^'])*)(?:'|\z)(\s*)       |  # 5) open '  6) content  7) space after
+                  ((?: \\\\|\\"|\\'|\\=|\\\s|[^"'=\s])+)(\s*) |  # 8) unquoted word  9) space after
+                  = |
                   \s+
               )!
                   $pos += length($1);
-                  say "D:<$1> pos=$pos, point=$point, cword=$cword, after_ws=$after_ws";
+                  #say "D:<$1> pos=$pos, point=$point, cword=$cword, after_ws=$after_ws";
 
-                  if ($2) { # double-quoted word
+                  if ($2 || $5 || defined($8)) {
+                      # double-quoted/single-quoted/unquoted chunk
 
                       if (not(defined $cword)) {
-                          if ($4 && $pos >= $point) {
-                              # we have gone past the word at cursor
+                          $pos_min_ws = $pos - length($2 ? $4 : $5 ? $7 : $9);
+                          #say "D:pos_min_ws=$pos_min_ws";
+                          if ($point <= $pos_min_ws) {
                               $cword = @words;
-                          } elsif ($pos-length($4) >= $point) {
-                              # we are at the word at cursor
-                              $cword = @words-1;
-                          } # else we haven't reached the word at cursor
-                      }
-                      if ($after_ws) {
-                          push @words, _add_double_quoted($3, 0);
-                      } else {
-                          $words[-1] .= _add_double_quoted($3, 0);
-                      }
-                      $after_ws = $4 ? 1:0;
-
-                  } elsif ($5) { # single-quoted word
-
-                      if (not(defined $cword)) {
-                          if ($7 && $pos >= $point) {
-                              # we have gone past the word at cursor
-                              $cword = @words;
-                          } elsif ($pos-length($7) >= $point) {
-                              # we are at the word at cursor
-                              $cword = @words-1;
-                          } # else we haven't reached the word at cursor
-                      }
-
-                      if ($after_ws) {
-                          push @words, _add_single_quoted($6, 0);
-                      } else {
-                          $words[-1] .= _add_single_quoted($6, 0);
-                      }
-                      $after_ws = $7 ? 1:0;
-
-                  } elsif ($8) { # unquoted word
-
-                      if (not(defined $cword)) {
-                          if ($9 && $pos >= $point) {
-                              # we have gone past the word at cursor
+                          } elsif ($point < $pos) {
                               $cword = @words+1;
-                          } elsif ($pos-length($9) >= $point) {
-                              # we are at the word at cursor
-                              $cword = @words;
-                          } # else we haven't reached the word at cursor
+                              $add_blank = 1;
+                          }
                       }
+                      $chunk = $2 ? _add_double_quoted($3, 0) :
+                          $5 ? _add_single_quoted($6, 0) : _add_unquoted($8, 0);
 
                       if ($after_ws) {
-                          push @words, _add_unquoted($8, 0);
+                          push @words, $chunk;
                       } else {
-                          $words[-1] .= _add_unquoted($8, 0);
+                          $words[-1] .= $chunk;
                       }
-                      $after_ws = $9 ? 1:0;
+                      if ($add_blank) {
+                          push @words, '';
+                          $add_blank = 0;
+                      }
+                      $after_ws = ($2 ? $4 : $5 ? $7 : $9) ? 1:0;
 
-                  } else { # whitespace
+                  } elsif ($1 eq '=') {
+                      # equal sign as word-breaking character
+                      push @words, '=';
+                      $after_ws = 1;
+                  } {
+                      # whitespace
                       $after_ws = 1;
                   }
     !egx;
