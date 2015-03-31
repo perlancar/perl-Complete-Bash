@@ -43,8 +43,6 @@ subtest "escaped space" => sub {
     is_deeply(parse_cmdline(_l(q|aa b\\  ^|), '', 1), [['aa', 'b ', ''], 2]);
 };
 
-goto DONE_TESTING;
-
 subtest "double quotes" => sub {
     is_deeply(parse_cmdline(_l(q|aa "b c^|)), [['aa', 'b c'], 1]);
     is_deeply(parse_cmdline(_l(q|aa "b c ^|)), [['aa', 'b c '], 1]);
@@ -55,7 +53,7 @@ subtest "double quotes" => sub {
     is_deeply(parse_cmdline(_l(q|aa "b c "^|)), [['aa', 'b c '], 1]);
     is_deeply(parse_cmdline(_l(q|aa "b c " ^|)), [['aa', 'b c ', ''], 2]);
 
-    # adjoint with unquoted word
+    # adjoint with unquoted word (2 adjointed chunks)
     is_deeply(parse_cmdline(_l(q|a"b^"|)), [['ab'], 0]);
     is_deeply(parse_cmdline(_l(q|a"b"^|)), [['ab'], 0]);
     is_deeply(parse_cmdline(_l(q|a"b" ^|)), [['ab', ''], 1]);
@@ -63,6 +61,10 @@ subtest "double quotes" => sub {
     is_deeply(parse_cmdline(_l(q|a"b  ^"|)), [['ab  '], 0]);
     is_deeply(parse_cmdline(_l(q|a"b "^|)), [['ab '], 0]);
     is_deeply(parse_cmdline(_l(q|a"b " ^|)), [['ab ', ''], 1]);
+
+    # adjoint with single-quoted + unquoted (3 adjointed chunks)
+    is_deeply(parse_cmdline(_l(q|a'c'"b "^|)), [['acb '], 0]);
+    is_deeply(parse_cmdline(_l(q|a'c'"b " ^|)), [['acb ', ''], 1]);
 };
 
 subtest "single quotes" => sub {
@@ -82,6 +84,10 @@ subtest "single quotes" => sub {
     is_deeply(parse_cmdline(_l(q|a'b  ^'|)), [['ab  '], 0]);
     is_deeply(parse_cmdline(_l(q|a'b '^|)), [['ab '], 0]);
     is_deeply(parse_cmdline(_l(q|a'b ' ^|)), [['ab ', ''], 1]);
+
+    # adjoint with single-quoted + unquoted (3 adjointed chunks)
+    is_deeply(parse_cmdline(_l(q|a"c"'b '^|)), [['acb '], 0]);
+    is_deeply(parse_cmdline(_l(q|a"c"'b ' ^|)), [['acb ', ''], 1]);
 };
 
 subtest "'=' as word-breaking character" => sub {

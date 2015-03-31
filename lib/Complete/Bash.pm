@@ -152,9 +152,9 @@ sub parse_cmdline {
                           $pos_min_ws = $pos - length($2 ? $4 : $5 ? $7 : $9);
                           #say "D:pos_min_ws=$pos_min_ws";
                           if ($point <= $pos_min_ws) {
-                              $cword = @words;
+                              $cword = @words - ($after_ws ? 0 : 1);
                           } elsif ($point < $pos) {
-                              $cword = @words+1;
+                              $cword = @words + 1 - ($after_ws ? 0 : 1);
                               $add_blank = 1;
                           }
                       }
@@ -176,7 +176,7 @@ sub parse_cmdline {
                       # equal sign as word-breaking character
                       push @words, '=';
                       $after_ws = 1;
-                  } {
+                  } else {
                       # whitespace
                       $after_ws = 1;
                   }
