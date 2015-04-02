@@ -1,5 +1,12 @@
 Revision history for Complete-Bash
 
+0.19    2015-04-02 (PERLANCAR)
+
+	- No functional changes.
+
+	- Skip tests on platforms that do not implement getpwuid [CT].
+
+
 0.18    2015-03-31 (PERLANCAR)
 
         - [Internal] Reimplement parse_cmdline() using regex instead of C-like
