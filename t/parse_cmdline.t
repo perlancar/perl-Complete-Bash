@@ -123,7 +123,9 @@ subtest "variable substitution" => sub {
 };
 
 subtest "tilde expansion" => sub {
-    my @ent = getpwuid($>);
+    my @ent;
+    eval { @ent = getpwuid($>) };
+    $@ and plan skip_all => 'getpwuid($>) dies (probably not implemented)';
     @ent or plan skip_all => 'getpwuid($>) is empty';
 
     is_deeply(parse_cmdline(_l(q|a^ ~|)), [['a', "$ent[7]"], 0]);
