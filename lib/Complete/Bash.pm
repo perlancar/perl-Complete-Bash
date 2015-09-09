@@ -7,8 +7,6 @@ use 5.010001;
 use strict;
 use warnings;
 
-#use Complete;
-
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
