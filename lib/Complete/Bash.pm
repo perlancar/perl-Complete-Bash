@@ -130,6 +130,21 @@ _
             schema => 'int*',
             pos => 1,
         },
+        opts => {
+            summary => 'Options',
+            description => <<'_',
+
+Optional. Known options:
+
+* `truncate_current_word` (bool). If set to 1, will truncate current word to the
+  position of cursor, for example (`^` marks the position of cursor):
+  `--vers^oo` to `--vers` instead of `--versoo`. This is more convenient when
+  doing tab completion.
+
+_
+            schema => 'hash*',
+            pos => 2,
+        },
     },
     result => {
         schema => ['array*', len=>2],
@@ -153,7 +168,7 @@ _
 };
 sub parse_cmdline {
     no warnings 'uninitialized';
-    my ($line, $point) = @_;
+    my ($line, $point, $opts) = @_;
 
     $line  //= $ENV{COMP_LINE};
     $point //= $ENV{COMP_POINT} // 0;
@@ -203,9 +218,10 @@ sub parse_cmdline {
                           $2 ? _add_double_quoted($3, $is_cur_word) :
                               $5 ? _add_single_quoted($6) :
                               _add_unquoted($8, $is_cur_word, $after_ws);
-                      if ($is_cur_word && $pos > $point) {
-                          $chunk = substr($chunk, 0,
-                                          length($chunk)-($pos-$point)+1);
+                      if ($opts && $opts->{truncate_current_word} &&
+                              $is_cur_word && $pos > $point) {
+                          $chunk = substr(
+                              $chunk, 0, length($chunk)-($pos-$point)+1);
                       }
                       if ($after_ws) {
                           push @words, $chunk;
@@ -304,7 +320,7 @@ sub parse_options {
     if ($args{words}) {
         ($words, $cword) = ($args{words}, $args{cword});
     } else {
-        ($words, $cword) = @{parse_cmdline($args{cmdline}, $args{point}, '=')};
+        ($words, $cword) = @{parse_cmdline($args{cmdline}, $args{point})};
     }
 
     my @types;

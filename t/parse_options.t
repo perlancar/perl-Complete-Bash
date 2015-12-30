@@ -38,7 +38,7 @@ is_deeply(
         cword     => 0,
         opts      => { a => [undef], b => [undef], c => [undef], M => ["Data::Dump"] },
         word_type => "command",
-        words     => ["c", "-abc", "-MData::Dump"],
+        words     => ["cmd", "-abc", "-MData::Dump"],
     },
 ) or diag explain $res;
 

@@ -17,8 +17,8 @@ sub _l {
 }
 
 subtest "basic" => sub {
-    is_deeply(parse_cmdline(_l(q|^aa|)), [['a'], 0]); # should be ''?
-    is_deeply(parse_cmdline(_l(q|a^a|)), [['aa'], 0]); # should be 'a'?
+    is_deeply(parse_cmdline(_l(q|^aa|)), [['aa'], 0]);
+    is_deeply(parse_cmdline(_l(q|a^a|)), [['aa'], 0]);
     is_deeply(parse_cmdline(_l(q|aa^|)), [['aa'], 0]);
     is_deeply(parse_cmdline(_l(q|aa ^|)), [['aa', ''], 1]);
     is_deeply(parse_cmdline(_l(q|aa b^|)), [['aa', 'b'], 1]);
@@ -149,6 +149,11 @@ subtest "tilde expansion" => sub {
     is_deeply(parse_cmdline(_l(q|a^ "~|)), [['a', '~'], 0]);
     # single quote prevents tilde expansion
     is_deeply(parse_cmdline(_l(q|a^ '~|)), [['a', '~'], 0]);
+};
+
+subtest "opt:truncate_current_word" => sub {
+    is_deeply(parse_cmdline(_l(q|aa^aaa|), {truncate_current_word=>1}),
+              [['aaa'], 0]); # XXX shouldn't it be 'aa'?
 };
 
 DONE_TESTING:
