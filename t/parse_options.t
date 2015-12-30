@@ -18,7 +18,7 @@ sub _l {
 
 my $res;
 
-$res = parse_options(cmdline=>q[cmd --help --opt val arg1 arg2 -- --arg3], point=>13);
+$res = parse_options(cmdline=>q[cmd --help --opt val arg1 arg2 -- --arg3], point=>16);
 is_deeply(
     $res,
     {
@@ -38,7 +38,7 @@ is_deeply(
         cword     => 0,
         opts      => { a => [undef], b => [undef], c => [undef], M => ["Data::Dump"] },
         word_type => "command",
-        words     => ["cmd", "-abc", "-MData::Dump"],
+        words     => ["c", "-abc", "-MData::Dump"],
     },
 ) or diag explain $res;
 

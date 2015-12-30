@@ -17,8 +17,8 @@ sub _l {
 }
 
 subtest "basic" => sub {
-    is_deeply(parse_cmdline(_l(q|^aa|)), [['aa'], 0]);
-    is_deeply(parse_cmdline(_l(q|a^a|)), [['aa'], 0]);
+    is_deeply(parse_cmdline(_l(q|^aa|)), [['a'], 0]); # should be ''?
+    is_deeply(parse_cmdline(_l(q|a^a|)), [['aa'], 0]); # should be 'a'?
     is_deeply(parse_cmdline(_l(q|aa^|)), [['aa'], 0]);
     is_deeply(parse_cmdline(_l(q|aa ^|)), [['aa', ''], 1]);
     is_deeply(parse_cmdline(_l(q|aa b^|)), [['aa', 'b'], 1]);

@@ -198,10 +198,15 @@ sub parse_cmdline {
                       } else {
                           $is_cur_word = defined($cword) && $cword==@words-1;
                       }
+                      #say "D:is_cur_word=$is_cur_word";
                       $chunk =
                           $2 ? _add_double_quoted($3, $is_cur_word) :
                               $5 ? _add_single_quoted($6) :
-                                  _add_unquoted($8, $is_cur_word, $after_ws);
+                              _add_unquoted($8, $is_cur_word, $after_ws);
+                      if ($is_cur_word && $pos > $point) {
+                          $chunk = substr($chunk, 0,
+                                          length($chunk)-($pos-$point)+1);
+                      }
                       if ($after_ws) {
                           push @words, $chunk;
                       } else {
