@@ -153,7 +153,7 @@ subtest "tilde expansion" => sub {
 
 subtest "opt:truncate_current_word" => sub {
     is_deeply(parse_cmdline(_l(q|aa^aaa|), {truncate_current_word=>1}),
-              [['aaa'], 0]); # XXX shouldn't it be 'aa'?
+              [['aa'], 0]);
 };
 
 DONE_TESTING:

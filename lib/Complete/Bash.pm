@@ -221,7 +221,7 @@ sub parse_cmdline {
                       if ($opts && $opts->{truncate_current_word} &&
                               $is_cur_word && $pos > $point) {
                           $chunk = substr(
-                              $chunk, 0, length($chunk)-($pos-$point)+1);
+                              $chunk, 0, length($chunk)-($pos-$point));
                       }
                       if ($after_ws) {
                           push @words, $chunk;
