@@ -1,5 +1,13 @@
 Revision history for Complete-Bash
 
+0.22    2015-12-30 (PERLANCAR)
+
+	- [ux][experimental] Truncate current word to the position of
+	  cursor, so completing something like (^ marks the position of
+	  cursor) --vers^oo is regarded as --vers instead of --versoo, thus
+	  more convenient.
+
+
 0.21    2015-09-09 (PERLANCAR)
 
 	- No functional changes.
