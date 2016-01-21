@@ -1,8 +1,16 @@
 Revision history for Complete-Bash
 
+0.25    2016-01-21 (PERLANCAR)
+
+	- [Bugfix] Off-by-one error was still present when current word is not
+          the last word.
+
+        - Add utility routine: point().
+
+
 0.24    2015-12-30 (PERLANCAR)
 
-	- [Bugfix] Fix off-by-one error.
+	- [Bugfix] Fix off-by-one error when truncate_current_word=1.
 
 
 0.23    2015-12-30 (PERLANCAR)
