@@ -120,32 +120,43 @@ subtest "tilde expansion" => sub {
     $@ and plan skip_all => 'getpwuid($>) dies (probably not implemented)';
     @ent or plan skip_all => 'getpwuid($>) is empty';
 
-    is_deeply(parse_cmdline(_l(q|a^ ~|)), [['a', "$ent[7]"], 0]);
-    is_deeply(parse_cmdline(_l(q|a^ ~/|)), [['a', "$ent[7]/"], 0]);
-    is_deeply(parse_cmdline(_l(q|a^ ~/b|)), [['a', "$ent[7]/b"], 0]);
-    is_deeply(parse_cmdline(_l(q|a^ ~/~|)), [['a', "$ent[7]/~"], 0]);
+    is_deeply(parse_cmdline(point(q|a^ ~|)), [['a', "$ent[7]"], 0]);
+    is_deeply(parse_cmdline(point(q|a^ ~/|)), [['a', "$ent[7]/"], 0]);
+    is_deeply(parse_cmdline(point(q|a^ ~/b|)), [['a', "$ent[7]/b"], 0]);
+    is_deeply(parse_cmdline(point(q|a^ ~/~|)), [['a', "$ent[7]/~"], 0]);
 
     # not an expanded tilde
-    is_deeply(parse_cmdline(_l(q|a^ a~|)), [['a', "a~"], 0]);
-    is_deeply(parse_cmdline(_l(q|a^ ""~|)), [['a', "~"], 0]);
+    is_deeply(parse_cmdline(point(q|a^ a~|)), [['a', "a~"], 0]);
+    is_deeply(parse_cmdline(point(q|a^ ""~|)), [['a', "~"], 0]);
 
     # XXX test ~username
 
     # not performed on current word
-    is_deeply(parse_cmdline(_l(q|a ~^|)), [['a', '~'], 1]);
+    is_deeply(parse_cmdline(point(q|a ~^|)), [['a', '~'], 1]);
 
     # escape prevents tilde expansion
-    is_deeply(parse_cmdline(_l(q|a^ \\~|)), [['a', '~'], 0]);
+    is_deeply(parse_cmdline(point(q|a^ \\~|)), [['a', '~'], 0]);
 
     # double quote prevents tilde expansion
-    is_deeply(parse_cmdline(_l(q|a^ "~|)), [['a', '~'], 0]);
+    is_deeply(parse_cmdline(point(q|a^ "~|)), [['a', '~'], 0]);
     # single quote prevents tilde expansion
-    is_deeply(parse_cmdline(_l(q|a^ '~|)), [['a', '~'], 0]);
+    is_deeply(parse_cmdline(point(q|a^ '~|)), [['a', '~'], 0]);
 };
 
 subtest "opt:truncate_current_word" => sub {
-    is_deeply(parse_cmdline(_l(q|aa^aaa|), {truncate_current_word=>1}),
-              [['aa'], 0]);
+    my $opts = {truncate_current_word=>1};
+
+    is_deeply(parse_cmdline(point(q|^a|), $opts), [[''], 0]);
+    is_deeply(parse_cmdline(point(q|a^|), $opts), [['a'], 0]);
+    is_deeply(parse_cmdline(point(q|a^a|), $opts), [['a'], 0]);
+    is_deeply(parse_cmdline(point(q|aa^a|), $opts), [['aa'], 0]);
+    is_deeply(parse_cmdline(point(q|aa^aa|), $opts), [['aa'], 0]);
+
+    is_deeply(parse_cmdline(point(q|^a b|), $opts), [['', 'b'], 0]);
+    is_deeply(parse_cmdline(point(q|a^ b|), $opts), [['a', 'b'], 0]);
+    is_deeply(parse_cmdline(point(q|a^a b|), $opts), [['a', 'b'], 0]);
+    is_deeply(parse_cmdline(point(q|aa^a b|), $opts), [['aa', 'b'], 0]);
+    is_deeply(parse_cmdline(point(q|aa^aa b|), $opts), [['aa', 'b'], 0]);
 };
 
 DONE_TESTING:

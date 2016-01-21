@@ -219,11 +219,13 @@ sub parse_cmdline {
     die "$0: COMP_LINE not set, make sure this script is run under ".
         "bash completion (e.g. through complete -C)\n" unless defined $line;
 
+    #say "D:line=<$line> point=<$point>";
+
     my @words;
     my $cword;
     my $pos = 0;
     my $pos_min_ws = 0;
-    my $after_ws = 1;
+    my $after_ws = 1; # XXX what does this variable mean?
     my $chunk;
     my $add_blank;
     my $is_cur_word;
@@ -235,6 +237,7 @@ sub parse_cmdline {
                   \s+
               )!
                   $pos += length($1);
+                  #say "D: \$1=<$1> \$2=<$3> \$3=<$3> \$4=<$4> \$5=<$5> \$6=<$6> \$7=<$7> \$8=<$8> \$9=<$9>";
                   #say "D:<$1> pos=$pos, point=$point, cword=$cword, after_ws=$after_ws";
 
                   if ($2 || $5 || defined($8)) {
@@ -264,7 +267,8 @@ sub parse_cmdline {
                       if ($opts && $opts->{truncate_current_word} &&
                               $is_cur_word && $pos > $point) {
                           $chunk = substr(
-                              $chunk, 0, length($chunk)-($pos-$point));
+                              $chunk, 0, length($chunk)-($pos_min_ws-$point));
+                          #say "D:truncating current word to <$chunk>";
                       }
                       if ($after_ws) {
                           push @words, $chunk;
@@ -627,7 +631,7 @@ return the list of words one per-line to STDOUT. An example:
 This module provides routines for you to be doing the above.
 
 
-=head1 SEE ALSO (2)
+=head1 append:SEE ALSO
 
 Other modules related to bash shell tab completion: L<Bash::Completion>,
 L<Getopt::Complete>. L<Term::Bash::Completion::Generator>
