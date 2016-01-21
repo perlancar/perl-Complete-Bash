@@ -10,6 +10,7 @@ use warnings;
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
+                       point
                        parse_cmdline
                        parse_options
                        format_completion
@@ -74,6 +75,48 @@ sub _add_single_quoted {
     my $word = shift;
     $word =~ s/\\(.)/$1/g;
     $word;
+}
+
+$SPEC{point} = {
+    v => 1.1,
+    summary => 'Return line with point marked by a marker',
+    description => <<'_',
+
+This is a utility function useful for testing/debugging. `parse_cmdline()`
+expects a command-line and a cursor position (`$line`, `$point`). This routine
+expects `$line` with a marker character (by default it's the caret, `^`) and
+return (`$line`, `$point`) to feed to `parse_cmdline()`.
+
+Example:
+
+    point("^foo") # => ("foo", 0)
+    point("fo^o") # => ("foo", 2)
+
+_
+    args_as => 'array',
+    args => {
+        cmdline => {
+            summary => 'Command-line which contains a marker character',
+            schema => 'str*',
+            pos => 0,
+        },
+        marker => {
+            summary => 'Marker character',
+            schema => ['str*', len=>1],
+            default => '^',
+            pos => 1,
+        },
+    },
+    result_naked => 1,
+};
+sub point {
+    my ($line, $marker) = @_;
+    $marker //= '^';
+
+    my $point = index($line, $marker);
+    die "BUG: No marker '$marker' in line <$line>" unless $point >= 0;
+    $line =~ s/\Q$marker\E//;
+    ($line, $point);
 }
 
 $SPEC{parse_cmdline} = {
