@@ -550,7 +550,7 @@ C<format_completion> is what you use to format completion answer structure for
 bash.
 
 
-=head1 append:SEE ALSO
+=head1 SEE ALSO
 
 L<Complete>, the convention that this module uses.
 

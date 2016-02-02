@@ -1,5 +1,14 @@
 Revision history for Complete-Bash
 
+0.26    2016-02-02 (PERLANCAR)
+
+        - [Incompatible change] Split the rest of the word-breaking characters
+          like bash.
+
+        - [Removed] Move parse_options() to Complete-Bash-History because it's
+          not generic enough to be in Complete::Bash.
+
+
 0.25    2016-01-21 (PERLANCAR)
 
 	- [Bugfix] Off-by-one error was still present when current word is not
