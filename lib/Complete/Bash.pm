@@ -12,7 +12,6 @@ our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
                        point
                        parse_cmdline
-                       parse_options
                        format_completion
                );
 
@@ -20,10 +19,7 @@ our %SPEC;
 
 $SPEC{':package'} = {
     v => 1.1,
-    summary => 'Completion module for bash shell',
-    links => [
-        {url => 'pm:Complete'},
-    ],
+    summary => 'Completion routines for bash shell',
 };
 
 sub _expand_tilde {
@@ -124,34 +120,81 @@ $SPEC{parse_cmdline} = {
     summary => 'Parse shell command-line for processing by completion routines',
     description => <<'_',
 
-This function basically converts COMP_LINE (str) and COMP_POINT (int) into
-something like (but not exactly the same as) COMP_WORDS (array) and COMP_CWORD
-(int) that bash supplies to shell functions.
+This function basically converts `COMP_LINE` (str) and `COMP_POINT` (int) into
+something like (but not exactly the same as) `COMP_WORDS` (array) and
+`COMP_CWORD` (int) that bash supplies to shell functions.
 
 The differences with bash are (these differences are mostly for parsing
-convenience for programs that use this routine):
+convenience for programs that use this routine; this comparison is made against
+bash versions 4.2-4.3):
 
-1) quotes and backslashes are stripped (bash's COMP_WORDS contains all the
-quotes and backslashes);
+1) quotes and backslashes are stripped (bash's `COMP_WORDS` contains all the
+   quotes and backslashes);
 
-2) variables are substituted with their values from environment variables except
-for the current word (COMP_WORDS[COMP_CWORD]) (bash does not perform variable
-substitution for COMP_WORDS). However, note that special shell variables that
-are not environment variables like `$0`, `$_`, `$IFS` will not be replaced
-correctly because bash does not export those variables for us.
+2) quoted phrase that contain spaces, or phrase that contains escaped spaces is
+   parsed as a single word. For example:
 
-3) tildes (~) are expanded with user's home directory except for the current
-word (bash does not perform tilde expansion for COMP_WORDS);
+    command "First argument" Second\ argument
 
-4) no word-breaking characters aside from whitespaces and `=` are currently used
-(bash uses COMP_WORDBREAKS which by default also include `:`, `;`, and so on).
-This is done for convenience of parsing of Getopt::Long-based applications. More
-word-breaking characters might be used in the future, e.g. when we want to
-handle complex bash statements like pipes, redirection, etc.
+   bash would split it as (represented as Perl):
+
+    ["command", "\"First", "argument\"", "Second\\", "argument"]
+
+   which is not very convenient. We parse it into:
+
+    ["command", "First argument", "Second argument"]
+
+3) variables are substituted with their values from environment variables except
+   for the current word (`COMP_WORDS[COMP_CWORD]`) (bash does not perform
+   variable substitution for `COMP_WORDS`). However, note that special shell
+   variables that are not environment variables like `$0`, `$_`, `$IFS` will not
+   be replaced correctly because bash does not export those variables for us.
+
+4) tildes (`~`) are expanded with user's home directory except for the current
+   word (bash does not perform tilde expansion for `COMP_WORDS`);
 
 Caveats:
 
-* Due to the way bash parses the command line, the two below are equivalent:
+* Like bash, we group non-whitespace word-breaking characters into its own word.
+  By default `COMP_WORDBREAKS` is:
+
+    "'@><=;|&(:
+
+  So if raw command-line is:
+
+    command --foo=bar http://example.com:80 mail@example.org Foo::Bar
+
+  then the parse result will be:
+
+    ["command", "--foo", "=", "bar", "http", ":", "//example.com", ":", "80", "Foo", "::", "Bar"]
+
+  which is annoying sometimes. But we follow bash here so we can more easily
+  accept input from a joined `COMP_WORDS` if we write completion bash functions,
+  e.g. (in the example, `foo` is a Perl script):
+
+    _foo ()
+    {
+        local words=(${COMP_CWORDS[@]})
+        # add things to words, etc
+        local point=... # calculate the new point
+        COMPREPLY=( `COMP_LINE="foo ${words[@]}" COMP_POINT=$point foo` )
+    }
+
+  To avoid these word-breaking characters to be split/grouped, we can escape
+  them with backslash or quote them, e.g.:
+
+    command "http://example.com:80" Foo\:\:Bar
+
+  which bash will parse as:
+
+    ["command", "\"http://example.com:80\"", "Foo\\:\\:Bar"]
+
+  and we parse as:
+
+    ["command", "http://example.com:80", "Foo::Bar"]
+
+* Due to the way bash parses the command line (see above), the two below are
+  equivalent:
 
     % cmd --foo=bar
     % cmd --foo = bar
@@ -175,6 +218,7 @@ _
         },
         opts => {
             summary => 'Options',
+            schema => 'hash*',
             description => <<'_',
 
 Optional. Known options:
@@ -195,8 +239,8 @@ _
 
 Return a 2-element array: `[$words, $cword]`. `$words` is array of str,
 equivalent to `COMP_WORDS` provided by bash to shell functions. `$cword` is an
-integer, equivalent to `COMP_CWORD` provided by bash to shell functions. The
-word to be completed is at `$words->[$cword]`.
+integer, roughly equivalent to `COMP_CWORD` provided by bash to shell functions.
+The word to be completed is at `$words->[$cword]`.
 
 Note that COMP_LINE includes the command name. If you want the command-line
 arguments only (like in `@ARGV`), you need to strip the first element from
@@ -229,15 +273,15 @@ sub parse_cmdline {
     my $chunk;
     my $add_blank;
     my $is_cur_word;
-    $line =~ s!(                                                 # 1) everything
-                  (")((?: \\\\|\\"|[^"])*)(?:"|\z)(\s*)       |  # 2) open "  3) content  4) space after
-                  (')((?: \\\\|\\'|[^'])*)(?:'|\z)(\s*)       |  # 5) open '  6) content  7) space after
-                  ((?: \\\\|\\"|\\'|\\=|\\\s|[^"'=\s])+)(\s*) |  # 8) unquoted word  9) space after
-                  = |
+    $line =~ s!(                                                         # 1) everything
+                  (")((?: \\\\|\\"|[^"])*)(?:"|\z)(\s*)               |  #  2) open "  3) content  4) space after
+                  (')((?: \\\\|\\'|[^'])*)(?:'|\z)(\s*)               |  #  5) open '  6) content  7) space after
+                  ((?: \\\\|\\"|\\'|\\=|\\\s|[^"'@><=|&\(:\s])+)(\s*) |  #  8) unquoted word  9) space after
+                  ([\@><=|&\(:]+) |                                      #  10) non-whitespace word-breaking characters
                   \s+
               )!
                   $pos += length($1);
-                  #say "D: \$1=<$1> \$2=<$3> \$3=<$3> \$4=<$4> \$5=<$5> \$6=<$6> \$7=<$7> \$8=<$8> \$9=<$9>";
+                  #say "D: \$1=<$1> \$2=<$3> \$3=<$3> \$4=<$4> \$5=<$5> \$6=<$6> \$7=<$7> \$8=<$8> \$9=<$9> \$10=<$10>";
                   #say "D:<$1> pos=$pos, point=$point, cword=$cword, after_ws=$after_ws";
 
                   if ($2 || $5 || defined($8)) {
@@ -281,9 +325,9 @@ sub parse_cmdline {
                       }
                       $after_ws = ($2 ? $4 : $5 ? $7 : $9) ? 1:0;
 
-                  } elsif ($1 eq '=') {
-                      # equal sign as word-breaking character
-                      push @words, '=';
+                  } elsif ($10) {
+                      # non-whitespace word-breaking characters
+                      push @words, $10;
                       $after_ws = 1;
                   } else {
                       # whitespace
@@ -449,6 +493,10 @@ sub format_completion {
 
 =head1 DESCRIPTION
 
+This module provides routines related to tab completion in bash shell.
+
+=head2 About programmable completion in bash
+
 Bash allows completion to come from various sources. The simplest is from a list
 of words (C<-W>):
 
@@ -473,10 +521,10 @@ possible completion:
  % foo <Tab>
  --help  --verbose  --version
 
-And yet another source is an external command (including, a Perl script). The
-command receives two environment variables: C<COMP_LINE> (string, raw
-command-line) and C<COMP_POINT> (integer, cursor location). Program must split
-C<COMP_LINE> into words, find the word to be completed, complete that, and
+And yet another source is an external command (C<-C>) including, from a Perl
+script. The command receives two environment variables: C<COMP_LINE> (string,
+raw command-line) and C<COMP_POINT> (integer, cursor location). Program must
+split C<COMP_LINE> into words, find the word to be completed, complete that, and
 return the list of words one per-line to STDOUT. An example:
 
  % cat foo-complete
@@ -491,13 +539,28 @@ return the list of words one per-line to STDOUT. An example:
  % foo --v<Tab>
  --verbose --version
 
-This module provides routines for you to be doing the above.
+=head2 About the routines in this module
+
+First of all, C<parse_cmdline()> is the function to parse raw command-line (such
+as what you get from bash in C<COMP_LINE> environment variable) into words. This
+makes it easy for the other functions to generate completion answer. See the
+documentation for that function for more details.
+
+C<format_completion> is what you use to format completion answer structure for
+bash.
 
 
 =head1 append:SEE ALSO
 
+L<Complete>, the convention that this module uses.
+
+Some higher-level modules that use this module (so you don't have to use this
+module directly): L<Getopt::Long::Complete> (via L<Complete::Getopt::Long>),
+L<Getopt::Long::Subcommand>, L<Perinci::CmdLine> (via
+L<Perinci::Sub::Complete>).
+
 Other modules related to bash shell tab completion: L<Bash::Completion>,
-L<Getopt::Complete>. L<Term::Bash::Completion::Generator>
+L<Getopt::Complete>, L<Term::Bash::Completion::Generator>.
 
 Programmable Completion section in Bash manual:
 L<https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html>

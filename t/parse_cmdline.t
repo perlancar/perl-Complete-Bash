@@ -82,11 +82,19 @@ subtest "single quotes" => sub {
     is_deeply(parse_cmdline(point(q|a"c"'b ' ^|)), [['acb ', ''], 1]);
 };
 
-subtest "'=' as word-breaking character" => sub {
+subtest "word-breaking characters" => sub {
     is_deeply(parse_cmdline(point(q|aa --bb^=c|)), [['aa', '--bb', '=', 'c'], 1]);
     is_deeply(parse_cmdline(point(q|aa --bb=c^|)), [['aa', '--bb', '=', 'c'], 3]);
+    is_deeply(parse_cmdline(point(q|aa --bb==c^|)), [['aa', '--bb', '==', 'c'], 3]);
 
-    # escape prevent word breaking
+    is_deeply(parse_cmdline(point(q|a b@c^|)), [['a','b','@','c'], 3]);
+    is_deeply(parse_cmdline(point(q|a >b <c^|)), [['a','>','b','<','c'], 4]);
+    is_deeply(parse_cmdline(point(q(a|b^))), [['a','|','b'], 2]);
+    is_deeply(parse_cmdline(point(q|a b&^|)), [['a','b','&',''], 3]);
+    is_deeply(parse_cmdline(point(q|a (b)^|)), [['a','(','b)'], 2]);
+    is_deeply(parse_cmdline(point(q|a b::c^|)), [['a','b','::','c'], 3]);
+
+    # escape prevents word breaking
     is_deeply(parse_cmdline(point(q|aa --bb\=c^|)), [['aa', '--bb=c'], 1]);
 
     # quote protects word break character
