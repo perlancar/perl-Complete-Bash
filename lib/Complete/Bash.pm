@@ -12,6 +12,7 @@ our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
                        point
                        parse_cmdline
+                       join_wordbreak_words
                        format_completion
                );
 
@@ -341,6 +342,56 @@ sub parse_cmdline {
     [\@words, $cword];
 }
 
+$SPEC{join_wordbreak_words} = {
+    v => 1.1,
+    summary => 'Post-process parse_cmdline() result by joining some words',
+    description => <<'_',
+
+`parse_cmdline()`, like bash, splits some characters that are considered as
+word-breaking characters:
+
+    "'@><=;|&(:
+
+So if command-line is:
+
+    command -MData::Dump bob@example.org
+
+then they will be parsed as:
+
+    ["command", "-MData", "::", "Dump", "bob", '@', "example.org"]
+
+Normally in Perl applications, we want `:`, `@` to be part of word. So this
+routine will convert the above into:
+
+    ["command", "-MData::Dump", 'bob@example.org']
+
+_
+};
+sub join_wordbreak_words {
+    my ($words, $cword) = @_;
+    my $new_words = [];
+    my $i = -1;
+    while (++$i < @$words) {
+        my $w = $words->[$i];
+        if ($w =~ /\A[\@=:]+\z/) {
+            if (@$new_words) {
+                $new_words->[-1] .= $w;
+                $cword-- if $cword >= $i || $cword >= @$new_words;
+            } else {
+                push @$new_words, $w;
+            }
+            if ($i+1 < @$words) {
+                $i++;
+                $new_words->[-1] .= $words->[$i];
+                $cword-- if $cword >= $i || $cword >= @$new_words;
+            }
+        } else {
+            push @$new_words, $w;
+        }
+    }
+    [$new_words, $cword];
+}
+
 $SPEC{format_completion} = {
     v => 1.1,
     summary => 'Format completion for output (for shell)',
@@ -439,22 +490,19 @@ sub format_completion {
         }
     }
 
-    # XXX this is currently an ad-hoc solution, need to formulate a
-    # name/interface for the more generic solution. since bash breaks words
-    # differently than us (we only break using '" and whitespace, while bash
-    # breaks using characters in $COMP_WORDBREAKS, by default is "'><=;|&(:),
-    # this presents a problem we often encounter: if we want to provide with a
-    # list of strings containing ':', most often Perl modules/packages, if user
-    # types e.g. "Text::AN" and we provide completion ["Text::ANSI"] then bash
-    # will change the word at cursor to become "Text::Text::ANSI" since it sees
-    # the current word as "AN" and not "Text::AN". the workaround is to chop
-    # /^Text::/ from completion answers. btw, we actually chop /^text::/i to
-    # handle case-insensitive matching, although this does not have the ability
-    # to replace the current word (e.g. if we type 'text::an' then bash can only
-    # replace the current word 'an' with 'ANSI). also, we currently only
-    # consider ':' since that occurs often.
+    # this is a workaround. since bash breaks words using characters in
+    # $COMP_WORDBREAKS, which by default is "'@><=;|&(: this presents a problem
+    # we often encounter: if we want to provide with a list of strings
+    # containing say ':', most often Perl modules/packages, if user types e.g.
+    # "Text::AN" and we provide completion ["Text::ANSI"] then bash will change
+    # the word at cursor to become "Text::Text::ANSI" since it sees the current
+    # word as "AN" and not "Text::AN". the workaround is to chop /^Text::/ from
+    # completion answers. btw, we actually chop /^text::/i to handle
+    # case-insensitive matching, although this does not have the ability to
+    # replace the current word (e.g. if we type 'text::an' then bash can only
+    # replace the current word 'an' with 'ANSI).
     if (defined($opts->{word})) {
-        if ($opts->{word} =~ s/(.+:)//) {
+        if ($opts->{word} =~ s/(.+[\@><=;|&\(:])//) {
             my $prefix = $1;
             for (@$comp) {
                 if (ref($_) eq 'HASH') {
