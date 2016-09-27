@@ -1,5 +1,10 @@
 Revision history for Complete-Bash
 
+0.28    2016-09-27 (PERLANCAR)
+
+        - [Bugfix] Fix join_wordbreak_words() [GH#3]. Thanks Mary Ehlers.
+
+
 0.27    2016-02-03 (PERLANCAR)
 
 	- Add join_wordbreak_words().
