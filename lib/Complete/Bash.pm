@@ -201,7 +201,7 @@ Caveats:
     % cmd --foo = bar
 
 Because they both expand to `['--foo', '=', 'bar']`. But obviously
-`Getopt::Long` does not regard the two as equivalent.
+<pm:Getopt::Long> does not regard the two as equivalent.
 
 _
     args_as => 'array',
