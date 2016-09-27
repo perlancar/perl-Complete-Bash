@@ -374,7 +374,7 @@ sub join_wordbreak_words {
     while (++$i < @$words) {
         my $w = $words->[$i];
         if ($w =~ /\A[\@=:]+\z/) {
-            if (@$new_words) {
+            if (@$new_words and $#$new_words != $cword) {
                 $new_words->[-1] .= $w;
                 $cword-- if $cword >= $i || $cword >= @$new_words;
             } else {
