@@ -132,7 +132,7 @@ bash versions 4.2-4.3):
 1) quotes and backslashes are stripped (bash's `COMP_WORDS` contains all the
    quotes and backslashes);
 
-2) quoted phrase that contain spaces, or phrase that contains escaped spaces is
+2) quoted phrase that contains spaces, or phrase that contains escaped spaces is
    parsed as a single word. For example:
 
     command "First argument" Second\ argument
@@ -594,13 +594,13 @@ as what you get from bash in C<COMP_LINE> environment variable) into words. This
 makes it easy for the other functions to generate completion answer. See the
 documentation for that function for more details.
 
-C<format_completion> is what you use to format completion answer structure for
+C<format_completion()> is what you use to format completion answer structure for
 bash.
 
 
 =head1 SEE ALSO
 
-L<Complete>, the convention that this module uses.
+L<Complete>, the convention that this module follows.
 
 Some higher-level modules that use this module (so you don't have to use this
 module directly): L<Getopt::Long::Complete> (via L<Complete::Getopt::Long>),
