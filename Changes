@@ -1,5 +1,13 @@
 Revision history for Complete-Bash
 
+0.30    2016-12-27 (PERLANCAR)
+
+	- No functional changes.
+
+	- [dist] Moving spec prereq from DevelopRecommends to
+	  DevelopSuggests with _SPEC:: prefix.
+
+
 0.29    2016-12-25 (PERLANCAR)
 
         - No functional changes.
