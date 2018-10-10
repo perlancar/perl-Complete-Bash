@@ -6,6 +6,7 @@ package Complete::Bash;
 use 5.010001;
 use strict;
 use warnings;
+use Log::ger;
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -264,7 +265,8 @@ sub parse_cmdline {
     die "$0: COMP_LINE not set, make sure this script is run under ".
         "bash completion (e.g. through complete -C)\n" unless defined $line;
 
-    #say "D:line=<$line> point=<$point>";
+    log_trace "[compbash] line=<$line> point=<$point>"
+        if $ENV{COMPLETE_BASH_TRACE};
 
     my @words;
     my $cword;
@@ -338,6 +340,9 @@ sub parse_cmdline {
 
     $cword //= @words;
     $words[$cword] //= '';
+
+    log_trace "[compbash] words=%s, cword=%s", \@words, $cword
+        if $ENV{COMPLETE_BASH_TRACE};
 
     [\@words, $cword];
 }
@@ -596,6 +601,13 @@ documentation for that function for more details.
 
 C<format_completion()> is what you use to format completion answer structure for
 bash.
+
+
+=head1 ENVIRONMENT
+
+=head2 COMPLETE_BASH_TRACE
+
+Bool. If set to true, will produce more log statements to L<Log::ger>.
 
 
 =head1 SEE ALSO
