@@ -1,3 +1,10 @@
+0.321   2019-06-25 (PERLANCAR)
+
+	- format_completion() now by default shows item summaries if
+	  available (can be turned off by setting 'show_summaries' option
+	  or COMPLETE_BASH_SHOW_SUMMARIES to 0).
+
+
 0.320   2018-10-10 (PERLANCAR)
 
 	- Observe COMPLETE_BASH_TRACE to produce more log statements for
