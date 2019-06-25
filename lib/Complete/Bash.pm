@@ -461,8 +461,45 @@ _
             pos=>0,
         },
         opts => {
+            summary => 'Specify options',
             schema=>'hash*',
             pos=>1,
+            description => <<'_',
+
+Known options:
+
+* word
+
+  A workaround. String. For now, see source code for more details.
+
+* show_summaries
+
+  Whether to show item's summaries. Boolean, default is from
+  COMPLETE_BASH_SHOW_SUMMARIES environment variable or 1.
+
+  An answer item contain summary, which is a short description about the item,
+  e.g.:
+
+      [{word=>"-a"    , summary=>"Show hidden files"},
+       {word=>"-l"    , summary=>"Show details"},
+       {word=>"--sort", summary=>"Specify sort order"}],
+
+  When summaries are not shown, user will just be seeing something like:
+
+      -a
+      -l
+      --sort
+
+  But when summaries are shown, user will see:
+
+      -a         -- Show hidden files
+      -l         -- Show details
+      --sort     -- Specify sort order
+
+  which is quite helpful.
+
+_
+
         },
     },
     result => {
@@ -520,8 +557,11 @@ sub format_completion {
     }
 
     my @res;
+    my @summaries;
+    my $has_summary;
     for my $entry (@$comp) {
-        my $word = ref($entry) eq 'HASH' ? $entry->{word} : $entry;
+        my $word    = ref($entry) eq 'HASH' ? $entry->{word}    : $entry;
+        my $summary = (ref($entry) eq 'HASH' ? $entry->{summary} : undef) // '';
         if ($esc_mode eq 'shellvar') {
             # don't escape $
             $word =~ s!([^A-Za-z0-9,+._/\$~-])!\\$1!g;
@@ -532,7 +572,36 @@ sub format_completion {
             $word =~ s!([^A-Za-z0-9,+._/:~-])!\\$1!g;
         }
         push @res, $word;
+        push @summaries, $summary;
+        $has_summary = 1 if length $summary;
     }
+
+  INSERT_SUMMARIES: {
+        last if @res <= 1;
+        last unless $has_summary;
+        last unless $opts->{show_summaries} //
+            $ENV{COMPLETE_BASH_SHOW_SUMMARIES} // 1;
+        my $columns = do {
+            if (eval { require Term::Size; 1 }) {
+                my ($columns, undef) = Term::Size::chars();
+                $columns;
+            } else {
+                $ENV{COLUMNS} // 80;
+            }
+        };
+        my $width = 8;
+        for (@res) {
+            $width = length if $width < length;
+        }
+        for (0..$#res) {
+            my $summary = $summaries[$_];
+            if (length $summary) {
+                $res[$_] = sprintf("%-${width}s -- %s", $res[$_], $summary);
+            }
+            $res[$_] .= " " x ($columns - length($res[$_]))
+                if length($res[$_]) < $columns;
+        }
+    } # INSERT_SUMMARIES
 
     if ($as eq 'array') {
         return \@res;
@@ -604,6 +673,11 @@ bash.
 
 
 =head1 ENVIRONMENT
+
+=head2 COMPLETE_BASH_SHOW_SUMMARIES
+
+Bool. Will set the default for C<show_summaries> option in
+L</format_completion>.
 
 =head2 COMPLETE_BASH_TRACE
 
