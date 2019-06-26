@@ -1,3 +1,8 @@
+0.322   2019-06-26 (PERLANCAR)
+
+	- Support showing message (Complete 0.201).
+
+
 0.321   2019-06-25 (PERLANCAR)
 
 	- format_completion() now by default shows item summaries if
