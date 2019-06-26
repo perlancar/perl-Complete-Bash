@@ -397,6 +397,16 @@ sub join_wordbreak_words {
     [$new_words, $cword];
 }
 
+sub _columns {
+    # XXX need to cache?
+    if (eval { require Term::Size; 1 }) {
+        my ($columns, undef) = Term::Size::chars();
+        $columns;
+    } else {
+        $ENV{COLUMNS} // 80;
+    }
+}
+
 $SPEC{format_completion} = {
     v => 1.1,
     summary => 'Format completion for output (for shell)',
@@ -520,6 +530,26 @@ sub format_completion {
     my $esc_mode = $hcomp->{esc_mode} // $hcomp->{escmode} // 'default';
     my $path_sep = $hcomp->{path_sep};
 
+    my @res;
+    my @summaries;
+    my $has_summary;
+
+  FORMAT_MESSAGE:
+    # display a message instead of list of words. we send " " (ASCII space)
+    # which bash does not display, so we can display a line of message while the
+    # user does not get the message as the completion. I've also tried \000 to
+    # \037 instead of space (\040) but nothing works better.
+    if (defined $hcomp->{message}) {
+        my $msg = $hcomp->{message};
+        if ($msg =~ /\A /) {
+            $msg =~ s/\A +//;
+            $msg = " (empty message)" unless length $msg;
+        }
+        @res = (sprintf("%-"._columns()."s", $msg), " ");
+        goto RETURN_RES;
+    }
+
+  WORKAROUND_PREVENT_BASH_FROM_INSERTING_SPACE:
     if (defined($path_sep) && @$words == 1) {
         my $re = qr/\Q$path_sep\E\z/;
         my $word;
@@ -532,6 +562,7 @@ sub format_completion {
         }
     }
 
+  WORKAROUND_WITH_WORDBREAKS:
     # this is a workaround. since bash breaks words using characters in
     # $COMP_WORDBREAKS, which by default is "'@><=;|&(: this presents a problem
     # we often encounter: if we want to provide with a list of strings
@@ -556,9 +587,7 @@ sub format_completion {
         }
     }
 
-    my @res;
-    my @summaries;
-    my $has_summary;
+  ESCAPE_WORDS:
     for my $entry (@$words) {
         my $word    = ref($entry) eq 'HASH' ? $entry->{word}    : $entry;
         my $summary = (ref($entry) eq 'HASH' ? $entry->{summary} : undef) // '';
@@ -581,14 +610,7 @@ sub format_completion {
         last unless $has_summary;
         last unless $opts->{show_summaries} //
             $ENV{COMPLETE_BASH_SHOW_SUMMARIES} // 1;
-        my $columns = do {
-            if (eval { require Term::Size; 1 }) {
-                my ($columns, undef) = Term::Size::chars();
-                $columns;
-            } else {
-                $ENV{COLUMNS} // 80;
-            }
-        };
+        my $columns = _columns();
         my $width = 8;
         for (@res) {
             $width = length if $width < length;
@@ -603,6 +625,7 @@ sub format_completion {
         }
     } # INSERT_SUMMARIES
 
+  RETURN_RES:
     if ($as eq 'array') {
         return \@res;
     } else {
