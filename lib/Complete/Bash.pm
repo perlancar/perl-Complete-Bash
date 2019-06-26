@@ -514,21 +514,21 @@ sub format_completion {
     $opts //= {};
 
     $hcomp = {words=>$hcomp} unless ref($hcomp) eq 'HASH';
-    my $comp     = $hcomp->{words};
+    my $words    = $hcomp->{words};
     my $as       = $hcomp->{as} // 'string';
     # 'escmode' key is deprecated (Complete 0.11-) and will be removed later
     my $esc_mode = $hcomp->{esc_mode} // $hcomp->{escmode} // 'default';
     my $path_sep = $hcomp->{path_sep};
 
-    if (defined($path_sep) && @$comp == 1) {
+    if (defined($path_sep) && @$words == 1) {
         my $re = qr/\Q$path_sep\E\z/;
         my $word;
-        if (ref($comp->[0]) eq 'HASH') {
-            $comp = [$comp->[0], {word=>"$comp->[0] "}] if
-                $comp->[0]{word} =~ $re;
+        if (ref($words->[0]) eq 'HASH') {
+            $words = [$words->[0], {word=>"$words->[0] "}] if
+                $words->[0]{word} =~ $re;
         } else {
-            $comp = [$comp->[0], "$comp->[0] "]
-                if $comp->[0] =~ $re;
+            $words = [$words->[0], "$words->[0] "]
+                if $words->[0] =~ $re;
         }
     }
 
@@ -546,7 +546,7 @@ sub format_completion {
     if (defined($opts->{word})) {
         if ($opts->{word} =~ s/(.+[\@><=;|&\(:])//) {
             my $prefix = $1;
-            for (@$comp) {
+            for (@$words) {
                 if (ref($_) eq 'HASH') {
                     $_->{word} =~ s/\A\Q$prefix\E//i;
                 } else {
@@ -559,7 +559,7 @@ sub format_completion {
     my @res;
     my @summaries;
     my $has_summary;
-    for my $entry (@$comp) {
+    for my $entry (@$words) {
         my $word    = ref($entry) eq 'HASH' ? $entry->{word}    : $entry;
         my $summary = (ref($entry) eq 'HASH' ? $entry->{summary} : undef) // '';
         if ($esc_mode eq 'shellvar') {
