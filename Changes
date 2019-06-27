@@ -1,3 +1,13 @@
+0.323   2019-06-27 (PERLANCAR)
+
+	- [ux] By default don't limit entries+summaries to a single-column
+	  display, but observe COMPLETE_BASH_MAX_COLUMNS.
+
+	- Add option to show summaries right-aligned, like in fish. This is
+          controlled via COMPLETE_BASH_SUMMARY_ALIGN (and also
+          COMPLETE_BASH_SUMMARY_LINE_EVERY).
+
+
 0.322   2019-06-26 (PERLANCAR)
 
 	- Support showing message (Complete 0.201).
