@@ -629,6 +629,20 @@ sub format_completion {
 
     #warn "terminal_width=$terminal_width, column_width=".($column_width // 'undef')."\n";
 
+  SORT: {
+        # we pre-sort because we want to draw summary lines every N row
+        last unless $summary_align eq 'right';
+        my @orders = sort {
+            # XXX how does bash sort completion entries, exactly? this is still
+            # not right. bash puts -\? between --debug and --format.
+            my $e1 = lc $res[$a]; $e1 =~ s/[^A-Za-z0-9]+//;
+            my $e2 = lc $res[$b]; $e2 =~ s/[^A-Za-z0-9]+//;
+            $e1 cmp $e2;
+        } 0..$#res;
+        @res = map { $res[$_] } @orders;
+        @summaries = map { $summaries[$_] } @orders;
+    }
+
   INSERT_SUMMARIES: {
         last if @res <= 1;
         last unless $has_summary;
@@ -657,8 +671,14 @@ sub format_completion {
             #warn "max_columns=$max_columns, column_width=$column_width, max_summ_width=$max_summ_width\n";
         }
 
+        my $line_every = $ENV{COMPLETE_BASH_SUMMARY_LINE_EVERY} // 4;
         for (0..$#res) {
             my $summary = $summaries[$_];
+            if ($max_columns == 1 &&
+                    $summary_align eq 'right' && ($_+1) % $line_every == 0) {
+                $summary = ("_" x ($max_summ_width - length $summary)) .
+                    $summary;
+            }
             if (length $summary) {
                 $res[$_] = sprintf(
                     "%-${max_entry_width}s  %".
@@ -772,6 +792,42 @@ L</format_completion>.
 =head2 COMPLETE_BASH_SUMMARY_ALIGN
 
 String. Either C<left> or C<right> (the default).
+
+The C<left> align looks something like this:
+
+ --bar      Summary about the bar option
+ --baz      Summary about the baz option
+ --foo      Summary about the foo option
+ --schapen  Summary about the schapen option
+
+The C<right> align will make the completion answer look like what you see in the
+B<fish> shell:
+
+ --bar                        Summary about the bar option
+ --baz                        Summary about the baz option
+ --foo                        Summary about the foo option
+ --schapen                Summary about the schapen option
+
+To help match the option and its corresponding summary visually, by default a
+line of underscores is drawn for every 5 lines (configurable via
+L</COMPLETE_BASH_SUMMARY_LINE_EVERY>.
+
+ --bar                        Summary about the bar option
+ --baz                        Summary about the baz option
+ --foo                        Summary about the foo option
+ --foobar   _______________Summary about the foobar option
+ --lam                        Summary about the lam option
+ --qux
+ --quux                                    Alias for --qux
+ --schapen  ______________Summary about the schapen option
+
+=head2 COMPLETE_BASH_SUMMARY_LINE_EVERY
+
+Uint. Default: 4.
+
+Relevant only when L</COMPLETE_BASH_SUMMARY_ALIGN> is set to C<right> (see its
+documentation for more detail).
+
 
 =head2 COMPLETE_BASH_TRACE
 
