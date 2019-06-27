@@ -407,6 +407,23 @@ sub _terminal_width {
     }
 }
 
+# given terminal width & number of columns, calculate column width
+sub _column_width {
+    my ($terminal_width, $num_columns) = @_;
+    if (defined $num_columns && $num_columns > 0) {
+        int( ($terminal_width - ($num_columns-1)*2) / $num_columns ) - 1;
+    } else {
+        undef;
+    }
+}
+
+# given terminal width & column width, calculate number of columns
+sub _num_columns {
+    my ($terminal_width, $column_width) = @_;
+    my $n = int( ($terminal_width+2) / ($column_width+2) );
+    $n >= 1 ? $n : 1;
+}
+
 $SPEC{format_completion} = {
     v => 1.1,
     summary => 'Format completion for output (for shell)',
@@ -605,35 +622,61 @@ sub format_completion {
         $has_summary = 1 if length $summary;
     }
 
+    my $summary_align = $ENV{COMPLETE_BASH_SUMMARY_ALIGN} // 'right';
+    my $max_columns = $ENV{COMPLETE_BASH_MAX_COLUMNS} // 0;
+    my $terminal_width = _terminal_width();
+    my $column_width = _column_width($terminal_width, $max_columns);
+
+    #warn "terminal_width=$terminal_width, column_width=".($column_width // 'undef')."\n";
+
   INSERT_SUMMARIES: {
         last if @res <= 1;
         last unless $has_summary;
         last unless $opts->{show_summaries} //
             $ENV{COMPLETE_BASH_SHOW_SUMMARIES} // 1;
-        my $max_entry_width = 8;
-        for (@res) {
-            $max_entry_width = length if $max_entry_width < length;
+        my $max_entry_width   = 8;
+        my $max_summ_width = 0;
+        for (0..$#res) {
+            $max_entry_width = length $res[$_]
+                if $max_entry_width < length $res[$_];
+            $max_summ_width = length $summaries[$_]
+                if $max_summ_width < length $summaries[$_];
         }
+        #warn "max_entry_width=$max_entry_width, max_summ_width=$max_summ_width\n";
+        if ($summary_align eq 'right') {
+            # if we are aligning summary to the right, we want to fill column
+            # width width
+            if ($max_columns <= 0) {
+                $max_columns = _num_columns(
+                    $terminal_width, ($max_entry_width + 2 + $max_summ_width));
+            }
+            $column_width = _column_width($terminal_width, $max_columns);
+            my $new_max_summ_width = $column_width - 2 - $max_entry_width;
+            $max_summ_width = $new_max_summ_width
+                if $max_summ_width < $new_max_summ_width;
+            #warn "max_columns=$max_columns, column_width=$column_width, max_summ_width=$max_summ_width\n";
+        }
+
         for (0..$#res) {
             my $summary = $summaries[$_];
             if (length $summary) {
                 $res[$_] = sprintf(
-                    "%-${max_entry_width}s -- %s", $res[$_], $summary);
+                    "%-${max_entry_width}s  %".
+                        ($summary_align eq 'right' ? $max_summ_width : '')."s",
+                    $res[$_], $summary);
             }
         }
     } # INSERT_SUMMARIES
 
   MAX_COLUMNS: {
-        my $max_columns = $ENV{COMPLETE_BASH_MAX_COLUMNS} // 0;
         last unless $max_columns > 0;
-        my $fill_width = _terminal_width() / $max_columns - $max_columns;
         my $max_entry_width = 0;
         for (@res) {
             $max_entry_width = length if $max_entry_width < length;
         }
-        last if $max_entry_width >= $fill_width;
+        last if $max_entry_width >= $column_width;
         for (@res) {
-            $_ .= " " x ($fill_width - length) if $fill_width > length;
+            $_ .= " " x ($column_width - length) if $column_width > length;
         }
     }
 
@@ -725,6 +768,10 @@ the number of columns.
 
 Bool. Will set the default for C<show_summaries> option in
 L</format_completion>.
+
+=head2 COMPLETE_BASH_SUMMARY_ALIGN
+
+String. Either C<left> or C<right> (the default).
 
 =head2 COMPLETE_BASH_TRACE
 
