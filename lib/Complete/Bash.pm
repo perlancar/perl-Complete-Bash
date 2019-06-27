@@ -622,7 +622,7 @@ sub format_completion {
         $has_summary = 1 if length $summary;
     }
 
-    my $summary_align = $ENV{COMPLETE_BASH_SUMMARY_ALIGN} // 'right';
+    my $summary_align = $ENV{COMPLETE_BASH_SUMMARY_ALIGN} // 'left';
     my $max_columns = $ENV{COMPLETE_BASH_MAX_COLUMNS} // 0;
     my $terminal_width = _terminal_width();
     my $column_width = _column_width($terminal_width, $max_columns);
@@ -791,7 +791,7 @@ L</format_completion>.
 
 =head2 COMPLETE_BASH_SUMMARY_ALIGN
 
-String. Either C<left> or C<right> (the default).
+String. Either C<left> (the default) or C<right>.
 
 The C<left> align looks something like this:
 
