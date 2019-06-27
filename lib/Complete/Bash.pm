@@ -397,11 +397,11 @@ sub join_wordbreak_words {
     [$new_words, $cword];
 }
 
-sub _columns {
+sub _terminal_width {
     # XXX need to cache?
     if (eval { require Term::Size; 1 }) {
-        my ($columns, undef) = Term::Size::chars();
-        $columns;
+        my ($cols, undef) = Term::Size::chars();
+        $cols;
     } else {
         $ENV{COLUMNS} // 80;
     }
@@ -545,7 +545,7 @@ sub format_completion {
             $msg =~ s/\A +//;
             $msg = " (empty message)" unless length $msg;
         }
-        @res = (sprintf("%-"._columns()."s", $msg), " ");
+        @res = (sprintf("%-"._terminal_width()."s", $msg), " ");
         goto RETURN_RES;
     }
 
@@ -610,20 +610,32 @@ sub format_completion {
         last unless $has_summary;
         last unless $opts->{show_summaries} //
             $ENV{COMPLETE_BASH_SHOW_SUMMARIES} // 1;
-        my $columns = _columns();
-        my $width = 8;
+        my $max_entry_width = 8;
         for (@res) {
-            $width = length if $width < length;
+            $max_entry_width = length if $max_entry_width < length;
         }
         for (0..$#res) {
             my $summary = $summaries[$_];
             if (length $summary) {
-                $res[$_] = sprintf("%-${width}s -- %s", $res[$_], $summary);
+                $res[$_] = sprintf(
+                    "%-${max_entry_width}s -- %s", $res[$_], $summary);
             }
-            $res[$_] .= " " x ($columns - length($res[$_]))
-                if length($res[$_]) < $columns;
         }
     } # INSERT_SUMMARIES
+
+  MAX_COLUMNS: {
+        my $max_columns = $ENV{COMPLETE_BASH_MAX_COLUMNS} // 0;
+        last unless $max_columns > 0;
+        my $fill_width = _terminal_width() / $max_columns - $max_columns;
+        my $max_entry_width = 0;
+        for (@res) {
+            $max_entry_width = length if $max_entry_width < length;
+        }
+        last if $max_entry_width >= $fill_width;
+        for (@res) {
+            $_ .= " " x ($fill_width - length) if $fill_width > length;
+        }
+    }
 
   RETURN_RES:
     if ($as eq 'array') {
@@ -696,6 +708,18 @@ bash.
 
 
 =head1 ENVIRONMENT
+
+=head2 COMPLETE_BASH_MAX_COLUMNS
+
+Uint.
+
+Bash will show completion entries in one or several columns, depending on the
+terminal width and the length of the entries (much like a standard non-long
+`ls`). If you prefer completion entries to be shown in a single column no matter
+how wide your terminal is, or how short the entries are, you can set the value
+of this variable to 1. If you prefer a maximum of two columns, set to 2, and so
+on. L</format_completion> will pad the entries with sufficient spaces to limit
+the number of columns.
 
 =head2 COMPLETE_BASH_SHOW_SUMMARIES
 
