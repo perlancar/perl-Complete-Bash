@@ -681,7 +681,7 @@ sub format_completion {
             }
             if (length $summary) {
                 $res[$_] = sprintf(
-                    "%-${max_entry_width}s  %".
+                    "%-${max_entry_width}s |%".
                         ($summary_align eq 'right' ? $max_summ_width : '')."s",
                     $res[$_], $summary);
             }
