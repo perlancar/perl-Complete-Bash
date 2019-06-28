@@ -1,3 +1,10 @@
+0.325   2019-06-28  Released-By: PERLANCAR; Urgency: low
+
+        - No functional changes.
+
+        - [dist] Try out new release note style.
+
+
 0.324   2019-06-28  Released-By: PERLANCAR
 
 	- [ux] Tweak summary display to make it look nicer (use vertical
