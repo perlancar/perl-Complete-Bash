@@ -1,3 +1,9 @@
+0.324   2019-06-28 (PERLANCAR)
+
+	- [ux] Tweak summary display to make it look nicer (use vertical
+	  bar | instead of space).
+
+
 0.323   2019-06-27 (PERLANCAR)
 
 	- [ux] By default don't limit entries+summaries to a single-column
