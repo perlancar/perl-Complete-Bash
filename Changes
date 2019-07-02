@@ -1,3 +1,9 @@
+0.326   2019-07-02  Released-By: PERLANCAR; Urgency: medium
+
+	- Implement another feature stolen from Ingy's complete-shell: use
+	  fzf for filters.
+
+
 0.325   2019-06-28  Released-By: PERLANCAR; Urgency: low
 
         - No functional changes.
