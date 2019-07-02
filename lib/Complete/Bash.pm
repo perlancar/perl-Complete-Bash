@@ -640,20 +640,6 @@ sub format_completion {
 
     #warn "terminal_width=$terminal_width, column_width=".($column_width // 'undef')."\n";
 
-  SORT: {
-        # we pre-sort because we want to draw summary lines every N row
-        last unless $summary_align eq 'right';
-        my @orders = sort {
-            # XXX how does bash sort completion entries, exactly? this is still
-            # not right. bash puts -\? between --debug and --format.
-            my $e1 = lc $words[$a]; $e1 =~ s/[^A-Za-z0-9]+//;
-            my $e2 = lc $words[$b]; $e2 =~ s/[^A-Za-z0-9]+//;
-            $e1 cmp $e2;
-        } 0..$#words;
-        @words     = map { $words[$_]     } @orders;
-        @summaries = map { $summaries[$_] } @orders;
-    }
-
   FORMAT_SUMMARIES: {
         @res = @words;
         last if @words <= 1;
