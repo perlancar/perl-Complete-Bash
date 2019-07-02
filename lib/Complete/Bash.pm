@@ -547,9 +547,25 @@ sub format_completion {
     my $esc_mode = $hcomp->{esc_mode} // $hcomp->{escmode} // 'default';
     my $path_sep = $hcomp->{path_sep};
 
-    my @res;
+    # we keep the original words (before formatted with summaries) when we want
+    # to use fzf instead of passing to bash directly
+    my @words;
     my @summaries;
+    my @res;
     my $has_summary;
+
+    my $code_return_message = sub {
+        # display a message instead of list of words. we send " " (ASCII space)
+        # which bash does not display, so we can display a line of message while
+        # the user does not get the message as the completion. I've also tried
+        # \000 to \037 instead of space (\040) but nothing works better.
+        my $msg = shift;
+        if ($msg =~ /\A /) {
+            $msg =~ s/\A +//;
+            $msg = " (empty message)" unless length $msg;
+        }
+        return (sprintf("%-"._terminal_width()."s", $msg), " ");
+    };
 
   FORMAT_MESSAGE:
     # display a message instead of list of words. we send " " (ASCII space)
@@ -557,12 +573,7 @@ sub format_completion {
     # user does not get the message as the completion. I've also tried \000 to
     # \037 instead of space (\040) but nothing works better.
     if (defined $hcomp->{message}) {
-        my $msg = $hcomp->{message};
-        if ($msg =~ /\A /) {
-            $msg =~ s/\A +//;
-            $msg = " (empty message)" unless length $msg;
-        }
-        @res = (sprintf("%-"._terminal_width()."s", $msg), " ");
+        @res = $code_return_message->($hcomp->{message});
         goto RETURN_RES;
     }
 
@@ -617,7 +628,7 @@ sub format_completion {
             # default
             $word =~ s!([^A-Za-z0-9,+._/:~-])!\\$1!g;
         }
-        push @res, $word;
+        push @words, $word;
         push @summaries, $summary;
         $has_summary = 1 if length $summary;
     }
@@ -635,24 +646,25 @@ sub format_completion {
         my @orders = sort {
             # XXX how does bash sort completion entries, exactly? this is still
             # not right. bash puts -\? between --debug and --format.
-            my $e1 = lc $res[$a]; $e1 =~ s/[^A-Za-z0-9]+//;
-            my $e2 = lc $res[$b]; $e2 =~ s/[^A-Za-z0-9]+//;
+            my $e1 = lc $words[$a]; $e1 =~ s/[^A-Za-z0-9]+//;
+            my $e2 = lc $words[$b]; $e2 =~ s/[^A-Za-z0-9]+//;
             $e1 cmp $e2;
-        } 0..$#res;
-        @res = map { $res[$_] } @orders;
+        } 0..$#words;
+        @words     = map { $words[$_]     } @orders;
         @summaries = map { $summaries[$_] } @orders;
     }
 
-  INSERT_SUMMARIES: {
-        last if @res <= 1;
+  FORMAT_SUMMARIES: {
+        @res = @words;
+        last if @words <= 1;
         last unless $has_summary;
         last unless $opts->{show_summaries} //
             $ENV{COMPLETE_BASH_SHOW_SUMMARIES} // 1;
         my $max_entry_width   = 8;
         my $max_summ_width = 0;
-        for (0..$#res) {
-            $max_entry_width = length $res[$_]
-                if $max_entry_width < length $res[$_];
+        for (0..$#words) {
+            $max_entry_width = length $words[$_]
+                if $max_entry_width < length $words[$_];
             $max_summ_width = length $summaries[$_]
                 if $max_summ_width < length $summaries[$_];
         }
@@ -672,7 +684,7 @@ sub format_completion {
         }
 
         my $line_every = $ENV{COMPLETE_BASH_SUMMARY_LINE_EVERY} // 4;
-        for (0..$#res) {
+        for (0..$#words) {
             my $summary = $summaries[$_];
             if ($max_columns == 1 &&
                     $summary_align eq 'right' && ($_+1) % $line_every == 0) {
@@ -683,10 +695,10 @@ sub format_completion {
                 $res[$_] = sprintf(
                     "%-${max_entry_width}s |%".
                         ($summary_align eq 'right' ? $max_summ_width : '')."s",
-                    $res[$_], $summary);
+                    $words[$_], $summary);
             }
         }
-    } # INSERT_SUMMARIES
+    } # FORMAT_SUMMARIES
 
   MAX_COLUMNS: {
         last unless $max_columns > 0;
@@ -700,7 +712,45 @@ sub format_completion {
         }
     }
 
+  PASS_TO_FZF: {
+        last unless $ENV{COMPLETE_BASH_FZF};
+        my $items = $ENV{COMPLETE_BASH_FZF_ITEMS} // 100;
+        last unless @words >= $items;
+
+        require File::Which;
+        unless (File::Which::which("fzf")) {
+            @res = $code_return_message->("Cannot find fzf to filter ".
+                                              scalar(@words)." items");
+            goto RETURN_RES;
+        }
+
+        require IPC::Open2;
+        local *CHLD_OUT;
+        local *CHLD_IN;
+        my $pid = IPC::Open2::open2(
+            \*CHLD_OUT, \*CHLD_IN, "fzf", "-m", "-d:", "--with-nth=2..")
+            or do {
+                @res = $code_return_message->("Cannot open fzf to filter ".
+                                                  scalar(@words)." items");
+                goto RETURN_RES;
+            };
+
+        print CHLD_IN map { "$_:$res[$_]\n" } 0..$#res;
+        my @res_words;
+        while (<CHLD_OUT>) {
+            my ($index) = /\A([0-9]+)\:/ or next;
+            push @res_words, $words[$index];
+        }
+        if (@res_words) {
+            @res = join(" ", @res_words);
+        } else {
+            @res = ();
+        }
+        waitpid($pid, 0);
+    }
+
   RETURN_RES:
+    #use Data::Dump; warn Data::Dump::dump(\@res);
     if ($as eq 'array') {
         return \@res;
     } else {
@@ -771,6 +821,19 @@ bash.
 
 
 =head1 ENVIRONMENT
+
+=head2 COMPLETE_BASH_FZF
+
+Bool. Whether to pass large completion answer to fzf instead of directly passing
+it to bash and letting bash page it with a simpler more-like internal pager. By
+default, large is defined as having at least 100 items (same bash's
+C<completion-query-items> setting). This can be configured via
+L</COMPLETE_BASH_FZF_ITEMS>.
+
+=head2 COMPLETE_BASH_FZF_ITEMS
+
+Uint. Default 100. The minimum number of items to trigger passing completion
+answer to fzf. See also: L</COMPLETE_BASH_FZF>.
 
 =head2 COMPLETE_BASH_MAX_COLUMNS
 
