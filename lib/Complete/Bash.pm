@@ -669,14 +669,8 @@ sub format_completion {
             #warn "max_columns=$max_columns, column_width=$column_width, max_summ_width=$max_summ_width\n";
         }
 
-        my $line_every = $ENV{COMPLETE_BASH_SUMMARY_LINE_EVERY} // 4;
         for (0..$#words) {
             my $summary = $summaries[$_];
-            if ($max_columns == 1 &&
-                    $summary_align eq 'right' && ($_+1) % $line_every == 0) {
-                $summary = ("_" x ($max_summ_width - length $summary)) .
-                    $summary;
-            }
             if (length $summary) {
                 $res[$_] = sprintf(
                     "%-${max_entry_width}s |%".
@@ -858,26 +852,6 @@ B<fish> shell:
  --baz                        Summary about the baz option
  --foo                        Summary about the foo option
  --schapen                Summary about the schapen option
-
-To help match the option and its corresponding summary visually, by default a
-line of underscores is drawn for every 5 lines (configurable via
-L</COMPLETE_BASH_SUMMARY_LINE_EVERY>.
-
- --bar                        Summary about the bar option
- --baz                        Summary about the baz option
- --foo                        Summary about the foo option
- --foobar   _______________Summary about the foobar option
- --lam                        Summary about the lam option
- --qux
- --quux                                    Alias for --qux
- --schapen  ______________Summary about the schapen option
-
-=head2 COMPLETE_BASH_SUMMARY_LINE_EVERY
-
-Uint. Default: 4.
-
-Relevant only when L</COMPLETE_BASH_SUMMARY_ALIGN> is set to C<right> (see its
-documentation for more detail).
 
 
 =head2 COMPLETE_BASH_TRACE
