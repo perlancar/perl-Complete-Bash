@@ -736,6 +736,8 @@ sub format_completion {
             };
 
         print CHLD_IN map { "$_:$res[$_]\n" } 0..$#res;
+        close CHLD_IN;
+
         my @res_words;
         while (<CHLD_OUT>) {
             my ($index) = /\A([0-9]+)\:/ or next;
