@@ -699,8 +699,8 @@ sub format_completion {
 
         require File::Which;
         unless (File::Which::which("fzf")) {
-            @res = $code_return_message->("Cannot find fzf to filter ".
-                                              scalar(@words)." items");
+            #@res = $code_return_message->("Cannot find fzf to filter ".
+            #                                  scalar(@words)." items");
             goto RETURN_RES;
         }
 
