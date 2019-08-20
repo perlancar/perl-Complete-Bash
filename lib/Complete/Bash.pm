@@ -401,7 +401,7 @@ sub _terminal_width {
     # XXX need to cache?
     if (eval { require Term::Size; 1 }) {
         my ($cols, undef) = Term::Size::chars(*STDOUT{IO});
-        $cols;
+        $cols // 80;
     } else {
         $ENV{COLUMNS} // 80;
     }
