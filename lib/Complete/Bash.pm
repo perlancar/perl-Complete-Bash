@@ -525,6 +525,10 @@ Known options:
 
   which is quite helpful.
 
+* workaround_with_wordbreaks
+
+  Boolean. Default is true. See source code for more details.
+
 _
 
         },
@@ -602,7 +606,10 @@ sub format_completion {
     # case-insensitive matching, although this does not have the ability to
     # replace the current word (e.g. if we type 'text::an' then bash can only
     # replace the current word 'an' with 'ANSI).
-    if (defined($opts->{word})) {
+    {
+        last unless $opts->{workaround_with_wordbreaks} // 1;
+        last unless defined $opts->{word};
+
         if ($opts->{word} =~ s/(.+[\@><=;|&\(:])//) {
             my $prefix = $1;
             for (@$words) {
