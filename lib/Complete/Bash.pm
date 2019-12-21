@@ -1,6 +1,8 @@
 package Complete::Bash;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010001;
@@ -548,7 +550,7 @@ sub format_completion {
     my $words    = $hcomp->{words};
     my $as       = $hcomp->{as} // 'string';
     # 'escmode' key is deprecated (Complete 0.11-) and will be removed later
-    my $esc_mode = $hcomp->{esc_mode} // $hcomp->{escmode} // 'default';
+    my $esc_mode = $hcomp->{esc_mode} // $hcomp->{escmode} // $ENV{COMPLETE_BASH_DEFAULT_ESC_MODE} // 'default';
     my $path_sep = $hcomp->{path_sep};
 
     # we keep the original words (before formatted with summaries) when we want
@@ -810,6 +812,10 @@ bash.
 
 
 =head1 ENVIRONMENT
+
+=head2 COMPLETE_BASH_DEFAULT_ESC_MODE
+
+Str.
 
 =head2 COMPLETE_BASH_FZF
 
