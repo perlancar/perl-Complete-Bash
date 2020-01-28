@@ -44,8 +44,17 @@ subtest "opt:as=array" => sub {
 subtest "path_sep /" => sub {
     is(format_completion({words=>['a/'], path_sep=>'/'}),
        "a/\na/\\ \n");
+    is(format_completion({words=>[{word=>'a/'}], path_sep=>'/'}),
+       "a/\na/\\ \n");
     is(format_completion({words=>['a/', 'b/'], path_sep=>'/'}),
        "a/\nb/\n");
+};
+
+subtest "is_partial" => sub {
+    is(format_completion({words=>['a'], is_partial=>1}),
+       "a\na\\ \n");
+    is(format_completion({words=>[{word=>'a', is_partial=>1}]}),
+       "a\na\\ \n");
 };
 
 subtest "path_sep ::" => sub {

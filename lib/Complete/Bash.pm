@@ -563,15 +563,29 @@ sub format_completion {
     }
 
   WORKAROUND_PREVENT_BASH_FROM_INSERTING_SPACE:
-    if (defined($path_sep) && @$words == 1) {
-        my $re = qr/\Q$path_sep\E\z/;
-        my $word;
-        if (ref($words->[0]) eq 'HASH') {
-            $words = [$words->[0], {word=>"$words->[0] "}] if
-                $words->[0]{word} =~ $re;
-        } else {
-            $words = [$words->[0], "$words->[0] "]
-                if $words->[0] =~ $re;
+    {
+        last unless @$words == 1;
+        if (defined $path_sep) {
+            my $re = qr/\Q$path_sep\E\z/;
+            my $word;
+            if (ref $words->[0] eq 'HASH') {
+                $words = [$words->[0], {word=>"$words->[0]{word} "}] if
+                    $words->[0]{word} =~ $re;
+            } else {
+                $words = [$words->[0], "$words->[0] "]
+                    if $words->[0] =~ $re;
+            }
+            last;
+        }
+
+        if ($hcomp->{is_partial} ||
+                ref $words->[0] eq 'HASH' && $words->[0]{is_partial}) {
+            if (ref $words->[0] eq 'HASH') {
+                $words = [$words->[0], {word=>"$words->[0]{word} "}];
+            } else {
+                $words = [$words->[0], "$words->[0] "];
+            }
+            last;
         }
     }
 
