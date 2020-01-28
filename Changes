@@ -1,3 +1,9 @@
+0.334   2020-01-28  Released-By: PERLANCAR; Urgency: medium
+
+	- Also prevent shell's automatic addition of space when
+	  is_partial=1.
+
+
 0.333   2020-01-28  Released-By: PERLANCAR; Urgency: high
 
         [Incompatible changes]
