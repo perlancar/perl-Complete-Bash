@@ -3,10 +3,11 @@
 use 5.010;
 use strict;
 use warnings;
-#use Log::Any '$log';
+use Test::More 0.98;
 
 use Complete::Bash qw(format_completion);
-use Test::More;
+
+local $ENV{COMPLETE_BASH_DEFAULT_ESC_MODE};
 
 subtest "accepts array of str" => sub {
     is(format_completion([qw/a b c/]), "a\nb\nc\n");
@@ -20,23 +21,23 @@ subtest "accepts array of hashref" => sub {
     ]), "a\nb\nc\n");
 };
 
-subtest "esc_mode default" => sub {
+subtest "opt:esc_mode=default" => sub {
     is(format_completion({words=>['a /:$']}),
+       "a\\ /:\$\n");
+};
+
+subtest "opt:esc_mode=shellvar" => sub {
+    is(format_completion({words=>['a /:$']}, {esc_mode=>'shellvar'}),
        "a\\ /:\\\$\n");
 };
 
-subtest "esc_mode none" => sub {
-    is(format_completion({words=>['a /:$'], esc_mode=>'none'}),
+subtest "opt:esc_mode=none" => sub {
+    is(format_completion({words=>['a /:$']}, {esc_mode=>'none'}),
        "a /:\$\n");
 };
 
-subtest "esc_mode shellvar" => sub {
-    is(format_completion({words=>['a /:$'], esc_mode=>'shellvar'}),
-       "a\\ /\\:\$\n");
-};
-
-subtest "as array" => sub {
-    is_deeply(format_completion({words=>['a ','b'], as=>'array'}),
+subtest "opt:as=array" => sub {
+    is_deeply(format_completion({words=>['a ','b']}, {as=>'array'}),
               ["a\\ ",'b']);
 };
 

@@ -438,17 +438,6 @@ with some options.
 This function accepts completion answer structure as described in the `Complete`
 POD. Aside from `words`, this function also recognizes these keys:
 
-* `as` (str): Either `string` (the default) or `array` (to return array of lines
-  instead of the lines joined together). Returning array is useful if you are
-  doing completion inside `Term::ReadLine`, for example, where the library
-  expects an array.
-
-* `esc_mode` (str): Escaping mode for entries. Either `default` (most
-  nonalphanumeric characters will be escaped), `shellvar` (like `default`, but
-  dollar sign `$` will not be escaped, convenient when completing environment
-  variables for example), `filename` (currently equals to `default`), `option`
-  (currently equals to `default`), or `none` (no escaping will be done).
-
 _
     args_as => 'array',
     args => {
@@ -470,6 +459,21 @@ _
             description => <<'_',
 
 Known options:
+
+* as
+
+  Either `string` (the default) or `array` (to return array of lines instead of
+  the lines joined together). Returning array is useful if you are doing
+  completion inside `Term::ReadLine`, for example, where the library expects an
+  array.
+
+* esc_mode
+
+  Escaping mode for entries. Either `default` (most nonalphanumeric characters
+  will be escaped), `shellvar` (like `default`, but dollar sign `$` will also be
+  escaped, convenient when completing environment variables for example),
+  `filename` (currently equals to `default`), `option` (currently equals to
+  `default`), or `none` (no escaping will be done).
 
 * word
 
@@ -522,9 +526,10 @@ sub format_completion {
 
     $hcomp = {words=>$hcomp} unless ref($hcomp) eq 'HASH';
     my $words    = $hcomp->{words};
-    my $as       = $hcomp->{as} // 'string';
+    my $as       = $opts->{as} // 'string';
     # 'escmode' key is deprecated (Complete 0.11-) and will be removed later
-    my $esc_mode = $hcomp->{esc_mode} // $hcomp->{escmode} // $ENV{COMPLETE_BASH_DEFAULT_ESC_MODE} // 'default';
+    my $esc_mode = $opts->{esc_mode} // $ENV{COMPLETE_BASH_DEFAULT_ESC_MODE} //
+        'default';
     my $path_sep = $hcomp->{path_sep};
 
     # we keep the original words (before formatted with summaries) when we want
@@ -603,13 +608,13 @@ sub format_completion {
         my $word    = ref($entry) eq 'HASH' ? $entry->{word}    : $entry;
         my $summary = (ref($entry) eq 'HASH' ? $entry->{summary} : undef) // '';
         if ($esc_mode eq 'shellvar') {
-            # don't escape $
-            $word =~ s!([^A-Za-z0-9,+._/\$~-])!\\$1!g;
+            # escape $ also
+            $word =~ s!([^A-Za-z0-9,+._/:~-])!\\$1!g;
         } elsif ($esc_mode eq 'none') {
             # no escaping
         } else {
             # default
-            $word =~ s!([^A-Za-z0-9,+._/:~-])!\\$1!g;
+            $word =~ s!([^A-Za-z0-9,+._/:\$~-])!\\$1!g;
         }
         push @words, $word;
         push @summaries, $summary;
@@ -789,7 +794,7 @@ bash.
 
 =head2 COMPLETE_BASH_DEFAULT_ESC_MODE
 
-Str.
+Str. To provide default for the C<esc_mode> option in L</format_completion>.
 
 =head2 COMPLETE_BASH_FZF
 
