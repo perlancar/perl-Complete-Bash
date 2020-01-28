@@ -449,32 +449,6 @@ POD. Aside from `words`, this function also recognizes these keys:
   variables for example), `filename` (currently equals to `default`), `option`
   (currently equals to `default`), or `none` (no escaping will be done).
 
-* `path_sep` (str): If set, will enable "path mode", useful for
-  completing/drilling-down path. Below is the description of "path mode".
-
-  In shell, when completing filename (e.g. `foo`) and there is only a single
-  possible completion (e.g. `foo` or `foo.txt`), the shell will display the
-  completion in the buffer and automatically add a space so the user can move to
-  the next argument. This is also true when completing other values like
-  variables or program names.
-
-  However, when completing directory (e.g. `/et` or `Downloads`) and there is
-  solely a single completion possible and it is a directory (e.g. `/etc` or
-  `Downloads`), the shell automatically adds the path separator character
-  instead (`/etc/` or `Downloads/`). The user can press Tab again to complete
-  for files/directories inside that directory, and so on. This is obviously more
-  convenient compared to when shell adds a space instead.
-
-  The `path_sep` option, when set, will employ a trick to mimic this behaviour.
-  The trick is, if you have a completion array of `['foo/']`, it will be changed
-  to `['foo/', 'foo/ ']` (the second element is the first element with added
-  space at the end) to prevent bash from adding a space automatically.
-
-  Path mode is not restricted to completing filesystem paths. Anything path-like
-  can use it. For example when you are completing Java or Perl module name (e.g.
-  `com.company.product.whatever` or `File::Spec::Unix`) you can use this mode
-  (with `path_sep` appropriately set to, e.g. `.` or `::`).
-
 _
     args_as => 'array',
     args => {
