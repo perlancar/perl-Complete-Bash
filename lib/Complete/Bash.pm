@@ -396,6 +396,8 @@ sub join_wordbreak_words {
             push @$new_words, $w;
         }
     }
+    log_trace "[compbash] join_wordbreak_words(): result: words=%s, cword=%d", $new_words, $cword
+        if $ENV{COMPLETE_BASH_TRACE};
     [$new_words, $cword];
 }
 
