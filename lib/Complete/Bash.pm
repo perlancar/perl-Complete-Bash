@@ -267,7 +267,7 @@ sub parse_cmdline {
     die "$0: COMP_LINE not set, make sure this script is run under ".
         "bash completion (e.g. through complete -C)\n" unless defined $line;
 
-    log_trace "[compbash] line=<$line> point=<$point>"
+    log_trace "[compbash] parse_cmdline(): input: line=<$line> point=<$point>"
         if $ENV{COMPLETE_BASH_TRACE};
 
     my @words;
@@ -343,7 +343,7 @@ sub parse_cmdline {
     $cword //= @words;
     $words[$cword] //= '';
 
-    log_trace "[compbash] words=%s, cword=%s", \@words, $cword
+    log_trace "[compbash] parse_cmdline(): result: words=%s, cword=%s", \@words, $cword
         if $ENV{COMPLETE_BASH_TRACE};
 
     [\@words, $cword];
@@ -361,16 +361,16 @@ word-breaking characters:
 
 So if command-line is:
 
-    command -MData::Dump bob@example.org
+    command --module=Data::Dump bob@example.org
 
 then they will be parsed as:
 
-    ["command", "-MData", "::", "Dump", "bob", '@', "example.org"]
+    ["command", "--module", "=", "Data", "::", "Dump", "bob", '@', "example.org"]
 
 Normally in Perl applications, we want `:`, `@` to be part of word. So this
 routine will convert the above into:
 
-    ["command", "-MData::Dump", 'bob@example.org']
+    ["command", "--module=Data::Dump", 'bob@example.org']
 
 _
 };
