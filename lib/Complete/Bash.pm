@@ -697,6 +697,7 @@ sub format_completion {
     }
 
   PASS_TO_FZF: {
+        last if $ENV{INSIDE_EMACS};
         last unless $ENV{COMPLETE_BASH_FZF};
         my $items = $ENV{COMPLETE_BASH_FZF_ITEMS} // 100;
         last unless @words >= $items;
@@ -819,6 +820,8 @@ it to bash and letting bash page it with a simpler more-like internal pager. By
 default, large is defined as having at least 100 items (same bash's
 C<completion-query-items> setting). This can be configured via
 L</COMPLETE_BASH_FZF_ITEMS>.
+
+Will not pass to fzf if inside emacs (C<INSIDE_EMACS> environment is true).
 
 =head2 COMPLETE_BASH_FZF_ITEMS
 
